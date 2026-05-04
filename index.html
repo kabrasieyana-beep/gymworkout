@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GymForge — Personal Workout Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       CSS VARIABLES & RESET
+    ============================================================ */
+    :root {
+      --bg:       #07070f;
+      --surface:  #0d0d1a;
+      --card:     #111120;
+      --card2:    #191930;
+      --accent:   #d4ff00;
+      --accentDim: rgba(212,255,0,0.10);
+      --accentBdr: rgba(212,255,0,0.22);
+      --red:      #ff3a3a;
+      --redDim:   rgba(255,58,58,0.10);
+      --green:    #00ffaa;
+      --greenDim: rgba(0,255,170,0.10);
+      --yellow:   #ffcc00;
+      --blue:     #5b8fff;
+      --text:     #e6e6f0;
+      --muted:    #66667a;
+      --border:   rgba(255,255,255,0.07);
+      --r:        12px;
+      --rs:       8px;
+      --font-d:   'Bebas Neue', 'Impact', sans-serif;
+      --font-b:   'Barlow', 'Segoe UI', sans-serif;
+      --font-c:   'Barlow Condensed', 'Barlow', sans-serif;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family: var(--font-b);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    /* Ambient glow */
+    body::after {
+      content:'';
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+      background:
+        radial-gradient(ellipse 70% 40% at 50% -10%, rgba(212,255,0,0.055) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 90% 90%,  rgba(91,143,255,0.03) 0%, transparent 50%);
+    }
+
+    /* ============================================================
+       NAVIGATION
+    ============================================================ */
+    nav {
+      position:sticky; top:0; z-index:200;
+      height:62px; padding:0 1.75rem;
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(7,7,15,0.92); backdrop-filter:blur(18px);
+      border-bottom:1px solid var(--border);
+    }
+    .logo {
+      font-family:var(--font-d);
+      font-size:1.9rem; letter-spacing:3px; line-height:1;
+      color:var(--text); cursor:pointer; user-select:none;
+    }
+    .logo span { color:var(--accent); }
+    .nav-pills {
+      display:flex; gap:4px;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:50px; padding:4px;
+    }
+    .nav-pill {
+      background:none; border:none; color:var(--muted);
+      font-family:var(--font-b); font-weight:700; font-size:0.82rem;
+      letter-spacing:0.5px; padding:0.38rem 1rem; border-radius:50px;
+      cursor:pointer; transition:all 0.2s; white-space:nowrap;
+    }
+    .nav-pill:hover:not(:disabled) { color:var(--text); }
+    .nav-pill.active { background:var(--accent); color:#000; }
+    .nav-pill:disabled { opacity:0.3; cursor:not-allowed; }
+
+    /* ============================================================
+       PAGES
+    ============================================================ */
+    .page { display:none; position:relative; z-index:1; }
+    .page.active { display:block; }
+
+    /* ============================================================
+       HERO / INPUT PAGE
+    ============================================================ */
+    .hero {
+      text-align:center; padding:4rem 1.5rem 2.5rem;
+    }
+    .hero-eye {
+      font-family:var(--font-c); font-size:0.78rem; letter-spacing:4px;
+      text-transform:uppercase; color:var(--accent); margin-bottom:1rem;
+    }
+    .hero h1 {
+      font-family:var(--font-d); letter-spacing:4px; line-height:0.92;
+      font-size:clamp(3.2rem,9vw,6.5rem); margin-bottom:1.5rem;
+    }
+    .hero h1 em { color:var(--accent); font-style:normal; }
+    .hero p {
+      color:var(--muted); font-size:1rem; font-weight:400;
+      max-width:460px; margin:0 auto; line-height:1.65;
+    }
+
+    /* Form wrapper */
+    .form-wrap { max-width:860px; margin:0 auto; padding:1.5rem 1.5rem 5rem; }
+
+    /* Form section card */
+    .fsec {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r); padding:1.75rem; margin-bottom:1.25rem;
+      position:relative; overflow:hidden;
+    }
+    .fsec::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg, var(--accent) 0%, transparent 70%);
+    }
+    .fsec-title {
+      font-family:var(--font-c); font-size:0.72rem; letter-spacing:3px;
+      text-transform:uppercase; color:var(--accent);
+      display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem;
+    }
+    .fsec-title::after {
+      content:''; flex:1; height:1px; background:var(--border);
+    }
+    .fgrid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(165px, 1fr));
+      gap:1.25rem;
+    }
+    .field { display:flex; flex-direction:column; gap:0.45rem; }
+    .field label {
+      font-size:0.72rem; font-weight:700; letter-spacing:1.5px;
+      text-transform:uppercase; color:var(--muted);
+    }
+    input[type="number"], select {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--rs); color:var(--text);
+      font-family:var(--font-b); font-size:0.95rem;
+      padding:0.7rem 1rem; width:100%;
+      transition:border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance:none; appearance:none;
+    }
+    input:focus, select:focus {
+      outline:none; border-color:var(--accent);
+      box-shadow:0 0 0 3px var(--accentDim);
+    }
+    select option { background:var(--card); }
+
+    /* Muscle checkboxes */
+    .mgrid {
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(138px,1fr));
+      gap:0.75rem;
+    }
+    .mpill { position:relative; }
+    .mpill input { position:absolute; opacity:0; width:0; height:0; }
+    .mpill label {
+      display:flex; align-items:center; gap:0.6rem;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--rs); padding:0.75rem 1rem;
+      cursor:pointer; transition:all 0.2s; user-select:none;
+      font-size:0.88rem; font-weight:500;
+    }
+    .mpill label .mi { font-size:1.15rem; }
+    .mpill input:checked + label {
+      border-color:var(--accent); background:var(--accentDim); color:var(--accent);
+    }
+    .mpill label:hover { border-color:var(--accentBdr); }
+
+    /* CTA */
+    .btn-cta {
+      width:100%; background:var(--accent); color:#000; border:none;
+      border-radius:var(--r); padding:1.1rem 2rem; margin-top:0.5rem;
+      font-family:var(--font-d); font-size:1.5rem; letter-spacing:3px;
+      cursor:pointer; transition:transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-cta:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(212,255,0,0.25); }
+    .btn-cta:active { transform:translateY(0); }
+
+    /* Secondary button */
+    .btn-out {
+      background:transparent; color:var(--text); border:1px solid var(--border);
+      border-radius:var(--rs); padding:0.6rem 1.15rem;
+      font-family:var(--font-b); font-weight:600; font-size:0.82rem;
+      cursor:pointer; transition:all 0.2s; white-space:nowrap;
+    }
+    .btn-out:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* ============================================================
+       PLAN PAGE
+    ============================================================ */
+    .plan-wrap { max-width:1050px; margin:0 auto; padding:2rem 1.5rem 5rem; }
+
+    .plan-head { margin-bottom:1.75rem; }
+    .plan-head h2 {
+      font-family:var(--font-d); font-size:clamp(2rem,5vw,3.5rem);
+      letter-spacing:3px; line-height:1; margin-bottom:0.4rem;
+    }
+    .plan-head p { color:var(--muted); font-size:0.9rem; }
+
+    /* Info cards row */
+    .info-row {
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+      gap:1rem; margin-bottom:1.75rem;
+    }
+    .icard {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r); padding:1.25rem 1.5rem;
+    }
+    .icard-lbl {
+      font-size:0.68rem; font-weight:700; letter-spacing:2px;
+      text-transform:uppercase; color:var(--muted); margin-bottom:0.45rem;
+    }
+    .icard-val {
+      font-family:var(--font-d); font-size:2.6rem; letter-spacing:2px;
+      line-height:1; margin-bottom:0.2rem;
+    }
+    .icard-sub { font-size:0.78rem; color:var(--muted); }
+
+    /* Stats chips */
+    .chips-row { display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.75rem; }
+    .chip {
+      background:var(--card); border:1px solid var(--border); border-radius:50px;
+      padding:0.35rem 0.9rem; font-size:0.78rem; font-weight:600; color:var(--muted);
+      display:flex; align-items:center; gap:0.35rem;
+    }
+    .chip b { color:var(--accent); }
+
+    /* Action bar */
+    .action-bar { display:flex; gap:0.7rem; flex-wrap:wrap; margin-bottom:1.75rem; }
+
+    /* Progressive overload table */
+    .overload-box {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r); padding:1.5rem; margin-bottom:2rem; overflow-x:auto;
+    }
+    .box-title {
+      font-family:var(--font-c); font-size:0.7rem; letter-spacing:3px;
+      text-transform:uppercase; color:var(--yellow); margin-bottom:1.25rem;
+    }
+    table { width:100%; border-collapse:collapse; font-size:0.87rem; }
+    th {
+      text-align:left; color:var(--muted); font-size:0.68rem;
+      font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+      padding:0.5rem 0.75rem; border-bottom:1px solid var(--border);
+    }
+    td { padding:0.7rem 0.75rem; border-bottom:1px solid var(--border); }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:rgba(255,255,255,0.02); }
+
+    /* Day cards */
+    .days-wrap { display:grid; gap:1.5rem; }
+    .dcard {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r); overflow:hidden;
+      animation:slideUp 0.45s ease both;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(22px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .dcard-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.2rem 1.5rem; background:var(--card2);
+      border-bottom:1px solid var(--border);
+    }
+    .dcard-day { font-family:var(--font-d); font-size:1.5rem; letter-spacing:2px; }
+    .dbadge {
+      font-family:var(--font-c); font-size:0.68rem; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase; border-radius:50px;
+      padding:0.28rem 0.8rem; border:1px solid var(--accentBdr);
+      background:var(--accentDim); color:var(--accent);
+    }
+    .dbadge.rest {
+      background:rgba(255,255,255,0.04); color:var(--muted);
+      border-color:var(--border);
+    }
+
+    /* Exercise grid */
+    .ex-grid { padding:1.1rem 1.5rem; display:grid; gap:0.75rem; }
+    .ex {
+      display:flex; background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--rs); overflow:hidden; transition:border-color 0.2s;
+    }
+    .ex:hover { border-color:var(--accentBdr); }
+
+    .ex-thumb {
+      width:88px; flex-shrink:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:0.3rem;
+      background:var(--card2); padding:0.6rem; font-size:2rem;
+    }
+    .mchip {
+      font-size:0.58rem; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+      padding:0.15rem 0.45rem; border-radius:3px; margin-top:0.1rem;
+    }
+    .mc-chest     { background:rgba(91,143,255,0.15); color:#5b8fff; }
+    .mc-back      { background:rgba(0,255,170,0.12); color:var(--green); }
+    .mc-legs      { background:rgba(168,85,247,0.15); color:#a855f7; }
+    .mc-shoulders { background:rgba(255,204,0,0.12); color:var(--yellow); }
+    .mc-arms      { background:rgba(255,58,58,0.12); color:var(--red); }
+    .mc-abs       { background:rgba(212,255,0,0.10); color:var(--accent); }
+
+    .ex-body { flex:1; padding:0.85rem 1rem; }
+    .ex-name { font-weight:700; font-size:0.94rem; margin-bottom:0.22rem; }
+    .ex-desc { font-size:0.77rem; color:var(--muted); line-height:1.45; margin-bottom:0.6rem; }
+    .ex-tags { display:flex; gap:0.45rem; flex-wrap:wrap; }
+    .tag {
+      font-size:0.7rem; font-weight:700; letter-spacing:0.4px;
+      padding:0.18rem 0.5rem; border-radius:4px; border:1px solid transparent;
+    }
+    .t-s { background:var(--accentDim); color:var(--accent); border-color:var(--accentBdr); }
+    .t-r { background:var(--accentDim); color:var(--accent); border-color:var(--accentBdr); }
+    .t-rest { background:rgba(255,255,255,0.05); color:var(--muted); }
+    .t-bw { background:var(--greenDim); color:var(--green); border-color:rgba(0,255,170,0.25); }
+    .t-eq { background:var(--redDim); color:#ff7070; border-color:rgba(255,58,58,0.25); }
+
+    /* Rest day */
+    .rest-box { padding:2.5rem; text-align:center; color:var(--muted); }
+    .rest-box .ri { font-size:3rem; margin-bottom:0.75rem; display:block; }
+    .rest-box h4 { font-weight:700; color:var(--text); margin-bottom:0.4rem; }
+    .rest-box p { font-size:0.84rem; line-height:1.55; max-width:380px; margin:0 auto; }
+
+    /* ============================================================
+       TRACKER PAGE
+    ============================================================ */
+    .tracker-wrap { max-width:900px; margin:0 auto; padding:2rem 1.5rem 5rem; }
+    .tracker-head {
+      display:flex; align-items:flex-start; justify-content:space-between;
+      flex-wrap:wrap; gap:1rem; margin-bottom:2rem;
+    }
+    .tracker-head h2 {
+      font-family:var(--font-d); font-size:2.8rem; letter-spacing:3px;
+    }
+    .week-nav { display:flex; align-items:center; gap:0.7rem; }
+    .week-lbl {
+      font-size:0.82rem; font-weight:600; color:var(--muted);
+      min-width:150px; text-align:center;
+    }
+
+    .cal-grid {
+      display:grid; grid-template-columns:repeat(7,1fr);
+      gap:0.7rem; margin-bottom:2rem;
+    }
+    .cal-day {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--rs); padding:1rem 0.4rem;
+      text-align:center; cursor:pointer; transition:all 0.2s; user-select:none;
+    }
+    .cal-day:hover:not(.is-rest) { border-color:var(--accentBdr); }
+    .cal-day.is-done { background:var(--greenDim); border-color:rgba(0,255,170,0.3); }
+    .cal-day.is-rest { cursor:default; opacity:0.45; }
+    .cal-ab { font-size:0.62rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:0.3rem; }
+    .cal-sp { font-size:0.6rem; color:var(--muted); margin-bottom:0.4rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cal-ck { font-size:1.35rem; }
+
+    /* Tracker stats */
+    .tstat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .tstat {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r); padding:1.25rem; text-align:center;
+    }
+    .tstat-v {
+      font-family:var(--font-d); font-size:3rem; letter-spacing:2px;
+      line-height:1; margin-bottom:0.25rem;
+    }
+    .tstat-l { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+
+    /* Weight log */
+    .wlog {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r); padding:1.5rem;
+    }
+    .wlog-title { font-family:var(--font-c); font-size:0.7rem; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:1.25rem; }
+    .wrow { display:flex; gap:0.75rem; margin-bottom:1.25rem; }
+    .wrow input { flex:1; }
+    .wentries { display:grid; gap:0.5rem; }
+    .went {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.6rem 0.85rem; background:var(--surface);
+      border:1px solid var(--border); border-radius:var(--rs); font-size:0.87rem;
+    }
+    .w-date { color:var(--muted); }
+    .w-v { font-weight:700; }
+    .w-d { font-size:0.78rem; font-weight:700; }
+
+    /* ============================================================
+       PRINT STYLES
+    ============================================================ */
+    @media print {
+      nav,.action-bar,.week-nav,.btn-cta,.btn-out,
+      #trackerPage,#inputPage { display:none !important; }
+      body { background:white !important; color:black !important; }
+      .dcard { break-inside:avoid; border:1px solid #ddd !important; background:white !important; }
+      .dcard-head { background:#f5f5f5 !important; }
+      .ex { background:#fafafa !important; }
+      .ex-thumb { background:#eee !important; }
+      .plan-wrap { padding:1rem !important; }
+      :root {
+        --card:#fff; --card2:#f5f5f5; --surface:#fafafa;
+        --text:#000; --muted:#555; --border:#ddd;
+      }
+    }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width:640px) {
+      nav { padding:0 1rem; }
+      .logo { font-size:1.5rem; }
+      .nav-pill { padding:0.35rem 0.6rem; font-size:0.75rem; }
+      .cal-grid { grid-template-columns:repeat(4,1fr); }
+      .ex-thumb { width:70px; font-size:1.55rem; }
+      .info-row { grid-template-columns:1fr 1fr; }
+      .dcard-head { flex-direction:column; align-items:flex-start; gap:0.5rem; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--card2); border-radius:3px; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAVIGATION
+============================================================ -->
+<nav>
+  <div class="logo" onclick="showPage('input')">GYM<span>FORGE</span></div>
+  <div class="nav-pills">
+    <button class="nav-pill active" onclick="showPage('input')">New Plan</button>
+    <button class="nav-pill" id="btnPlan" onclick="showPage('plan')" disabled>My Plan</button>
+    <button class="nav-pill" id="btnTracker" onclick="showPage('tracker')" disabled>Progress</button>
+  </div>
+</nav>
+
+<!-- ============================================================
+     INPUT PAGE
+============================================================ -->
+<div id="inputPage" class="page active">
+  <div class="hero">
+    <div class="hero-eye">⚡ AI-Powered Workout Planner</div>
+    <h1>BUILD YOUR<br><em>PERFECT</em><br>BODY</h1>
+    <p>Enter your stats below and get a personalized weekly workout plan designed around your goals, schedule, and fitness level.</p>
+  </div>
+
+  <div class="form-wrap">
+
+    <!-- Body Stats -->
+    <div class="fsec">
+      <div class="fsec-title">📊 Body Stats</div>
+      <div class="fgrid">
+        <div class="field">
+          <label>Weight (kg)</label>
+          <input type="number" id="weight" placeholder="75" min="30" max="300">
+        </div>
+        <div class="field">
+          <label>Height (cm)</label>
+          <input type="number" id="height" placeholder="175" min="100" max="250">
+        </div>
+        <div class="field">
+          <label>Age</label>
+          <input type="number" id="age" placeholder="25" min="13" max="100">
+        </div>
+        <div class="field">
+          <label>Gender</label>
+          <select id="gender">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other / Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Training Preferences -->
+    <div class="fsec">
+      <div class="fsec-title">🎯 Training Preferences</div>
+      <div class="fgrid">
+        <div class="field">
+          <label>Fitness Level</label>
+          <select id="level">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Primary Goal</label>
+          <select id="goal">
+            <option value="lean">Get Lean / Toned</option>
+            <option value="muscle">Build Muscle</option>
+            <option value="fat_loss">Fat Loss</option>
+            <option value="strength">Pure Strength</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Days Per Week</label>
+          <select id="days">
+            <option value="1">1 day</option>
+            <option value="2">2 days</option>
+            <option value="3" selected>3 days</option>
+            <option value="4">4 days</option>
+            <option value="5">5 days</option>
+            <option value="6">6 days</option>
+            <option value="7">7 days</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Target Muscles -->
+    <div class="fsec">
+      <div class="fsec-title">💪 Target Muscle Groups</div>
+      <div class="mgrid">
+        <div class="mpill"><input type="checkbox" id="m-chest" value="chest" checked><label for="m-chest"><span class="mi">🫁</span> Chest</label></div>
+        <div class="mpill"><input type="checkbox" id="m-back" value="back" checked><label for="m-back"><span class="mi">🔙</span> Back</label></div>
+        <div class="mpill"><input type="checkbox" id="m-legs" value="legs" checked><label for="m-legs"><span class="mi">🦵</span> Legs</label></div>
+        <div class="mpill"><input type="checkbox" id="m-shoulders" value="shoulders"><label for="m-shoulders"><span class="mi">🏋️</span> Shoulders</label></div>
+        <div class="mpill"><input type="checkbox" id="m-arms" value="arms"><label for="m-arms"><span class="mi">💪</span> Arms</label></div>
+        <div class="mpill"><input type="checkbox" id="m-abs" value="abs" checked><label for="m-abs"><span class="mi">🧱</span> Abs / Core</label></div>
+      </div>
+    </div>
+
+    <button class="btn-cta" onclick="generatePlan()">⚡ GENERATE MY PLAN</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     PLAN PAGE
+============================================================ -->
+<div id="planPage" class="page">
+  <div class="plan-wrap">
+    <div class="plan-head">
+      <h2 id="planTitle">Your Workout Plan</h2>
+      <p id="planSub"></p>
+    </div>
+
+    <!-- Body metrics row -->
+    <div class="info-row" id="infoRow"></div>
+
+    <!-- Action buttons -->
+    <div class="action-bar">
+      <button class="btn-out" onclick="window.print()">🖨️ Print / Save PDF</button>
+      <button class="btn-out" onclick="downloadPlan()">📥 Download Text</button>
+      <button class="btn-out" onclick="showPage('input')">✏️ Edit Plan</button>
+    </div>
+
+    <!-- Stat chips -->
+    <div class="chips-row" id="chipsRow"></div>
+
+    <!-- Progressive overload schedule -->
+    <div class="overload-box">
+      <div class="box-title">📈 Progressive Overload Schedule</div>
+      <table id="overloadTable"></table>
+    </div>
+
+    <!-- Day cards -->
+    <div class="days-wrap" id="daysWrap"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     TRACKER PAGE
+============================================================ -->
+<div id="trackerPage" class="page">
+  <div class="tracker-wrap">
+    <div class="tracker-head">
+      <h2>PROGRESS<br><span style="color:var(--accent)">TRACKER</span></h2>
+      <div class="week-nav">
+        <button class="btn-out" onclick="shiftWeek(-1)">← Prev</button>
+        <div class="week-lbl" id="weekLbl"></div>
+        <button class="btn-out" onclick="shiftWeek(1)">Next →</button>
+      </div>
+    </div>
+
+    <div class="cal-grid" id="calGrid"></div>
+
+    <!-- Stats -->
+    <div class="tstat-row">
+      <div class="tstat">
+        <div class="tstat-v" id="tStreak" style="color:var(--red)">0</div>
+        <div class="tstat-l">🔥 Streak (days)</div>
+      </div>
+      <div class="tstat">
+        <div class="tstat-v" id="tTotal" style="color:var(--accent)">0</div>
+        <div class="tstat-l">💪 Total Workouts</div>
+      </div>
+      <div class="tstat">
+        <div class="tstat-v" id="tWeekly" style="color:var(--green)">0%</div>
+        <div class="tstat-l">📅 This Week Done</div>
+      </div>
+    </div>
+
+    <!-- Weight log -->
+    <div class="wlog">
+      <div class="wlog-title">⚖️ Weight Log</div>
+      <div class="wrow">
+        <input type="number" id="wInput" placeholder="Today's weight (kg)" step="0.1" min="20" max="500">
+        <button class="btn-out" onclick="logWeight()">Log</button>
+      </div>
+      <div class="wentries" id="wEntries"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+/* ============================================================
+   EXERCISE DATABASE
+   Each exercise has level-specific params (sets, reps, rest)
+   and a type (bodyweight or machine)
+============================================================ */
+const DB = {
+  chest: [
+    {
+      name:"Barbell Bench Press", emoji:"🏋️", type:"machine",
+      desc:"Lie flat, grip bar wider than shoulders. Lower to mid-chest, press up with control. Keep feet flat and back slightly arched.",
+      beginner:     {sets:3, reps:"8–10",  rest:"90s"},
+      intermediate: {sets:4, reps:"8–12",  rest:"75s"},
+      advanced:     {sets:5, reps:"6–10",  rest:"60s"}
+    },
+    {
+      name:"Incline Dumbbell Press", emoji:"📐", type:"machine",
+      desc:"Set bench to 30–45°. Press dumbbells from shoulder level, bring together at top without touching. Targets upper chest.",
+      beginner:     {sets:3, reps:"10–12", rest:"90s"},
+      intermediate: {sets:3, reps:"10–12", rest:"75s"},
+      advanced:     {sets:4, reps:"8–12",  rest:"60s"}
+    },
+    {
+      name:"Push-Ups", emoji:"⬆️", type:"bodyweight",
+      desc:"Hands shoulder-width, body in a straight line. Lower chest to floor, press back up explosively. Keep core braced throughout.",
+      beginner:     {sets:3, reps:"8–12",  rest:"60s"},
+      intermediate: {sets:4, reps:"15–20", rest:"45s"},
+      advanced:     {sets:4, reps:"20–30", rest:"30s"}
+    },
+    {
+      name:"Dumbbell Flyes", emoji:"🦅", type:"machine",
+      desc:"Lie flat, hold dumbbells above chest with slight elbow bend. Open arms wide in an arc, squeeze chest to bring them back.",
+      beginner:     {sets:3, reps:"12–15", rest:"60s"},
+      intermediate: {sets:3, reps:"12–15", rest:"60s"},
+      advanced:     {sets:4, reps:"12–15", rest:"45s"}
+    },
+    {
+      name:"Cable Crossover", emoji:"✖️", type:"machine",
+      desc:"Stand between high cables. Pull handles down and together in a sweeping arc. Squeeze chest hard at the center.",
+      beginner:     {sets:3, reps:"12–15", rest:"60s"},
+      intermediate: {sets:3, reps:"12–15", rest:"60s"},
+      advanced:     {sets:4, reps:"12–15", rest:"45s"}
+    },
+    {
+      name:"Chest Dips", emoji:"🔽", type:"bodyweight",
+      desc:"Lean torso forward on parallel bars to shift load to chest. Lower until shoulders drop below elbows, press back up.",
+      beginner:     {sets:3, reps:"5–8",   rest:"90s"},
+      intermediate: {sets:3, reps:"10–12", rest:"75s"},
+      advanced:     {sets:4, reps:"12–15", rest:"60s"}
+    }
+  ],
+
+  back: [
+    {
+      name:"Pull-Ups", emoji:"🔝", type:"bodyweight",
+      desc:"Hang with overhand grip. Pull chest toward the bar while squeezing shoulder blades together. Lower slowly and fully.",
+      beginner:     {sets:3, reps:"3–5",   rest:"90s"},
+      intermediate: {sets:4, reps:"8–10",  rest:"75s"},
+      advanced:     {sets:4, reps:"12–15", rest:"60s"}
+    },
+    {
+      name:"Barbell Bent-Over Row", emoji:"🔄", type:"machine",
+      desc:"Hinge at hips, back flat, bar hanging. Row to lower chest. Squeeze back hard at the top. Don't round your spine.",
+      beginner:     {sets:3, reps:"8–10",  rest:"90s"},
+      intermediate: {sets:4, reps:"8–12",  rest:"75s"},
+      advanced:     {sets:4, reps:"6–10",  rest:"60s"}
+    },
+    {
+      name:"Lat Pulldown", emoji:"⬇️", type:"machine",
+      desc:"Wide overhand grip. Pull bar to upper chest while leaning back slightly. Squeeze lats at the bottom, control the return.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:4, reps:"10–12", rest:"60s"},
+      advanced:     {sets:4, reps:"10–15", rest:"45s"}
+    },
+    {
+      name:"Seated Cable Row", emoji:"🚣", type:"machine",
+      desc:"Sit tall, pull handle to lower abs. Drive elbows behind you, squeezing shoulder blades. Return with control. No rounding.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:4, reps:"10–12", rest:"60s"},
+      advanced:     {sets:4, reps:"12–15", rest:"45s"}
+    },
+    {
+      name:"Single-Arm Dumbbell Row", emoji:"💪", type:"machine",
+      desc:"One knee on bench for support. Row dumbbell from full hang to hip height. Keep back parallel to the floor. Full range.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:4, reps:"12–15", rest:"60s"},
+      advanced:     {sets:4, reps:"12–15", rest:"45s"}
+    },
+    {
+      name:"Superman Hold", emoji:"🦸", type:"bodyweight",
+      desc:"Lie face down, arms extended. Simultaneously raise arms, chest and legs off the floor. Hold 2 s at top. Lower slowly.",
+      beginner:     {sets:3, reps:"10–12", rest:"60s"},
+      intermediate: {sets:3, reps:"15–20", rest:"45s"},
+      advanced:     {sets:4, reps:"20–25", rest:"30s"}
+    }
+  ],
+
+  legs: [
+    {
+      name:"Barbell Back Squat", emoji:"🏋️", type:"machine",
+      desc:"Bar on upper traps, feet shoulder-width. Squat until thighs parallel to floor. Drive through heels to stand. Chest up.",
+      beginner:     {sets:3, reps:"8–10",  rest:"120s"},
+      intermediate: {sets:4, reps:"8–12",  rest:"90s"},
+      advanced:     {sets:5, reps:"6–10",  rest:"75s"}
+    },
+    {
+      name:"Leg Press", emoji:"🦵", type:"machine",
+      desc:"Feet hip-width on the platform. Lower sled until knees hit 90°, press back up without locking out. Don't let knees cave.",
+      beginner:     {sets:3, reps:"10–15", rest:"90s"},
+      intermediate: {sets:4, reps:"10–15", rest:"75s"},
+      advanced:     {sets:4, reps:"12–20", rest:"60s"}
+    },
+    {
+      name:"Romanian Deadlift", emoji:"🔽", type:"machine",
+      desc:"Hold bar at hips, push hips back with soft knees and flat back. Feel hamstring stretch, then drive hips forward to stand.",
+      beginner:     {sets:3, reps:"10–12", rest:"90s"},
+      intermediate: {sets:4, reps:"10–12", rest:"75s"},
+      advanced:     {sets:4, reps:"8–12",  rest:"60s"}
+    },
+    {
+      name:"Walking Lunges", emoji:"🚶", type:"bodyweight",
+      desc:"Step forward, lower back knee near floor without touching. Push off front foot and step through. Keep torso upright.",
+      beginner:     {sets:3, reps:"8/leg", rest:"75s"},
+      intermediate: {sets:3, reps:"12/leg",rest:"60s"},
+      advanced:     {sets:4, reps:"15/leg",rest:"45s"}
+    },
+    {
+      name:"Lying Leg Curl", emoji:"🔙", type:"machine",
+      desc:"Lie face down, hook ankles under pad. Curl heels to glutes, hold 1 s at top, lower slowly. Isolates hamstrings.",
+      beginner:     {sets:3, reps:"12–15", rest:"75s"},
+      intermediate: {sets:4, reps:"12–15", rest:"60s"},
+      advanced:     {sets:4, reps:"12–15", rest:"45s"}
+    },
+    {
+      name:"Standing Calf Raises", emoji:"⬆️", type:"bodyweight",
+      desc:"Stand on the edge of a step. Rise all the way onto toes, hold 1 s. Lower below starting point for full stretch. Slow tempo.",
+      beginner:     {sets:3, reps:"15–20", rest:"60s"},
+      intermediate: {sets:4, reps:"20–25", rest:"45s"},
+      advanced:     {sets:4, reps:"25–30", rest:"30s"}
+    }
+  ],
+
+  shoulders: [
+    {
+      name:"Overhead Barbell Press", emoji:"🆙", type:"machine",
+      desc:"Bar at chin height, grip slightly wider than shoulders. Press overhead to full lockout. Lower under control. Keep core tight.",
+      beginner:     {sets:3, reps:"8–10",  rest:"90s"},
+      intermediate: {sets:4, reps:"8–12",  rest:"75s"},
+      advanced:     {sets:4, reps:"6–10",  rest:"60s"}
+    },
+    {
+      name:"Dumbbell Lateral Raises", emoji:"🦅", type:"machine",
+      desc:"Hold dumbbells at sides with a slight bend in elbows. Raise arms to shoulder height. Lower slowly. Avoid swinging the body.",
+      beginner:     {sets:3, reps:"12–15", rest:"60s"},
+      intermediate: {sets:4, reps:"12–15", rest:"45s"},
+      advanced:     {sets:4, reps:"15–20", rest:"30s"}
+    },
+    {
+      name:"Arnold Press", emoji:"🔄", type:"machine",
+      desc:"Dumbbells at shoulder height facing you. Rotate palms outward as you press overhead. Reverse on descent. Full ROM.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:4, reps:"10–12", rest:"60s"},
+      advanced:     {sets:4, reps:"10–15", rest:"45s"}
+    },
+    {
+      name:"Cable Face Pulls", emoji:"🎯", type:"machine",
+      desc:"Cable at forehead height with rope. Pull rope to face, elbows flaring out and up. Excellent for rear delts & rotator cuffs.",
+      beginner:     {sets:3, reps:"12–15", rest:"60s"},
+      intermediate: {sets:3, reps:"15–20", rest:"45s"},
+      advanced:     {sets:4, reps:"15–20", rest:"30s"}
+    },
+    {
+      name:"Pike Push-Ups", emoji:"🔺", type:"bodyweight",
+      desc:"Form an inverted V. Lower your head toward the floor between your hands, press back up. Great shoulder builder, no weights.",
+      beginner:     {sets:3, reps:"6–10",  rest:"75s"},
+      intermediate: {sets:3, reps:"10–15", rest:"60s"},
+      advanced:     {sets:4, reps:"15–20", rest:"45s"}
+    },
+    {
+      name:"Front Dumbbell Raises", emoji:"⬆️", type:"machine",
+      desc:"Alternating or both arms. Raise dumbbells straight in front to shoulder height. Lower slowly. Targets anterior deltoid.",
+      beginner:     {sets:3, reps:"10–12", rest:"60s"},
+      intermediate: {sets:3, reps:"12–15", rest:"45s"},
+      advanced:     {sets:4, reps:"12–15", rest:"30s"}
+    }
+  ],
+
+  arms: [
+    {
+      name:"Barbell Bicep Curl", emoji:"💪", type:"machine",
+      desc:"Stand, elbows glued to sides. Curl bar to shoulder height, squeeze hard. Lower slowly. Zero torso swing.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:4, reps:"10–12", rest:"60s"},
+      advanced:     {sets:4, reps:"8–12",  rest:"45s"}
+    },
+    {
+      name:"Hammer Curls", emoji:"🔨", type:"machine",
+      desc:"Neutral grip (palms facing in). Curl up alternating or together. Works brachialis and brachioradialis for arm thickness.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:3, reps:"12–15", rest:"60s"},
+      advanced:     {sets:4, reps:"12–15", rest:"45s"}
+    },
+    {
+      name:"Tricep Dips", emoji:"🔽", type:"bodyweight",
+      desc:"Upright on parallel bars. Lower until upper arms are parallel to floor. Press back up to full lockout. Keep elbows close.",
+      beginner:     {sets:3, reps:"6–8",   rest:"90s"},
+      intermediate: {sets:3, reps:"10–15", rest:"75s"},
+      advanced:     {sets:4, reps:"15–20", rest:"60s"}
+    },
+    {
+      name:"Cable Tricep Pushdown", emoji:"⬇️", type:"machine",
+      desc:"Elbows locked at sides. Push rope/bar to full extension, squeezing triceps hard. Control the return. No elbow flare.",
+      beginner:     {sets:3, reps:"12–15", rest:"60s"},
+      intermediate: {sets:4, reps:"12–15", rest:"45s"},
+      advanced:     {sets:4, reps:"15–20", rest:"30s"}
+    },
+    {
+      name:"Concentration Curl", emoji:"🎯", type:"machine",
+      desc:"Seated, elbow braced on inner thigh. Curl dumbbell to shoulder fully. Supinate wrist at top. Best bicep peak isolation.",
+      beginner:     {sets:3, reps:"10–12", rest:"60s"},
+      intermediate: {sets:3, reps:"12–15", rest:"45s"},
+      advanced:     {sets:4, reps:"12–15", rest:"30s"}
+    },
+    {
+      name:"Skull Crushers", emoji:"💀", type:"machine",
+      desc:"Lie flat, EZ-bar above chest. Hinge elbows to lower bar to forehead. Extend back up. Keep upper arms perfectly vertical.",
+      beginner:     {sets:3, reps:"10–12", rest:"75s"},
+      intermediate: {sets:3, reps:"10–15", rest:"60s"},
+      advanced:     {sets:4, reps:"10–15", rest:"45s"}
+    }
+  ],
+
+  abs: [
+    {
+      name:"Plank", emoji:"📏", type:"bodyweight",
+      desc:"Forearms on floor, body in a rigid straight line from head to heels. Breathe steadily. Don't let hips sag or pike up.",
+      beginner:     {sets:3, reps:"20–30 s",rest:"60s"},
+      intermediate: {sets:3, reps:"45–60 s",rest:"45s"},
+      advanced:     {sets:4, reps:"60–90 s",rest:"30s"}
+    },
+    {
+      name:"Crunches", emoji:"🔄", type:"bodyweight",
+      desc:"Knees bent, feet flat. Curl shoulder blades off the floor using abs, not neck momentum. Control every rep.",
+      beginner:     {sets:3, reps:"12–15", rest:"60s"},
+      intermediate: {sets:4, reps:"20–25", rest:"45s"},
+      advanced:     {sets:4, reps:"30–40", rest:"30s"}
+    },
+    {
+      name:"Leg Raises", emoji:"⬆️", type:"bodyweight",
+      desc:"Lie flat, legs straight. Raise to 90° keeping legs together. Lower slowly without letting feet touch the floor. Lower abs.",
+      beginner:     {sets:3, reps:"10–12", rest:"60s"},
+      intermediate: {sets:4, reps:"15–20", rest:"45s"},
+      advanced:     {sets:4, reps:"20–25", rest:"30s"}
+    },
+    {
+      name:"Russian Twists", emoji:"🔀", type:"bodyweight",
+      desc:"Lean back 45°, feet raised. Rotate torso and touch the floor on each side. Add a weight plate for progression.",
+      beginner:     {sets:3, reps:"10/side",rest:"60s"},
+      intermediate: {sets:4, reps:"15/side",rest:"45s"},
+      advanced:     {sets:4, reps:"20/side",rest:"30s"}
+    },
+    {
+      name:"Mountain Climbers", emoji:"⛰️", type:"bodyweight",
+      desc:"Plank position. Drive alternating knees to chest at speed while keeping hips level. Doubles as cardio. Core + conditioning.",
+      beginner:     {sets:3, reps:"20 s",  rest:"60s"},
+      intermediate: {sets:4, reps:"30 s",  rest:"45s"},
+      advanced:     {sets:4, reps:"45 s",  rest:"30s"}
+    },
+    {
+      name:"Bicycle Crunches", emoji:"🚴", type:"bodyweight",
+      desc:"On back, hands behind head. Bring opposite elbow to knee while extending other leg. Rotate fully each rep. Highest EMG ab exercise.",
+      beginner:     {sets:3, reps:"12/side",rest:"60s"},
+      intermediate: {sets:4, reps:"20/side",rest:"45s"},
+      advanced:     {sets:4, reps:"30/side",rest:"30s"}
+    }
+  ]
+};
+
+/* ============================================================
+   WORKOUT SPLITS
+   Maps training days → array of session definitions
+============================================================ */
+const SPLITS = {
+  1: [
+    {label:"Full Body", muscles:["chest","back","legs","shoulders","arms","abs"]}
+  ],
+  2: [
+    {label:"Upper Body",  muscles:["chest","back","shoulders","arms","abs"]},
+    {label:"Lower Body",  muscles:["legs","abs"]}
+  ],
+  3: [
+    {label:"Push",         muscles:["chest","shoulders","arms"]},
+    {label:"Pull",         muscles:["back","arms","abs"]},
+    {label:"Legs & Core",  muscles:["legs","abs"]}
+  ],
+  4: [
+    {label:"Chest & Triceps",    muscles:["chest","arms"]},
+    {label:"Back & Biceps",      muscles:["back","arms","abs"]},
+    {label:"Legs & Core",        muscles:["legs","abs"]},
+    {label:"Shoulders & Arms",   muscles:["shoulders","arms"]}
+  ],
+  5: [
+    {label:"Chest & Triceps",    muscles:["chest","arms"]},
+    {label:"Back & Biceps",      muscles:["back","arms"]},
+    {label:"Legs",               muscles:["legs"]},
+    {label:"Shoulders & Core",   muscles:["shoulders","abs"]},
+    {label:"Full Body Pump",     muscles:["chest","back","legs","abs"]}
+  ],
+  6: [
+    {label:"Push A",  muscles:["chest","shoulders","arms"]},
+    {label:"Pull A",  muscles:["back","arms","abs"]},
+    {label:"Legs A",  muscles:["legs","abs"]},
+    {label:"Push B",  muscles:["chest","shoulders"]},
+    {label:"Pull B",  muscles:["back","abs"]},
+    {label:"Legs B",  muscles:["legs"]}
+  ],
+  7: [
+    {label:"Push",          muscles:["chest","shoulders","arms"]},
+    {label:"Pull",          muscles:["back","arms"]},
+    {label:"Legs",          muscles:["legs","abs"]},
+    {label:"Upper",         muscles:["chest","back","shoulders"]},
+    {label:"Lower + Core",  muscles:["legs","abs"]},
+    {label:"Arms & Delts",  muscles:["arms","shoulders"]},
+    {label:"Core & Stretch",muscles:["abs"]}
+  ]
+};
+
+const DAYS_OF_WEEK = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const GOAL_NAMES   = {lean:"Get Lean / Toned", muscle:"Build Muscle", fat_loss:"Fat Loss", strength:"Pure Strength"};
+const LEVEL_NAMES  = {beginner:"Beginner", intermediate:"Intermediate", advanced:"Advanced"};
+
+/* ============================================================
+   STATE
+============================================================ */
+let currentPlan = null;
+let userProfile  = null;
+let currentWeek  = 0;
+let trackerData  = JSON.parse(localStorage.getItem("gf_tracker") || "{}");
+let weightLog    = JSON.parse(localStorage.getItem("gf_weights") || "[]");
+
+/* ============================================================
+   GENERATE PLAN
+============================================================ */
+function generatePlan() {
+  const weight = parseFloat(document.getElementById("weight").value) || 75;
+  const height = parseFloat(document.getElementById("height").value) || 175;
+  const age    = parseInt(document.getElementById("age").value)       || 25;
+  const gender = document.getElementById("gender").value;
+  const level  = document.getElementById("level").value;
+  const goal   = document.getElementById("goal").value;
+  const days   = parseInt(document.getElementById("days").value);
+
+  const selected = [...document.querySelectorAll('.mpill input:checked')].map(c => c.value);
+  if (!selected.length) { alert("Please select at least one muscle group!"); return; }
+
+  const bmi = weight / Math.pow(height / 100, 2);
+  const bmiCat = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal Weight" : bmi < 30 ? "Overweight" : "Obese";
+  const bmiCol = bmi < 18.5 ? "var(--blue)" : bmi < 25 ? "var(--green)" : bmi < 30 ? "var(--yellow)" : "var(--red)";
+
+  userProfile = {weight, height, age, gender, level, goal, days, selected, bmi, bmiCat, bmiCol};
+
+  const split = SPLITS[days];
+  const plan  = [];
+
+  for (let i = 0; i < 7; i++) {
+    if (i < days) {
+      const session = split[i];
+      const exercises = pickExercises(session.muscles, selected, level, goal, days);
+      plan.push({day: DAYS_OF_WEEK[i], num: i+1, label: session.label, isRest: false, exercises});
+    } else {
+      plan.push({day: DAYS_OF_WEEK[i], num: i+1, label: "Rest Day", isRest: true, exercises: []});
+    }
+  }
+
+  currentPlan = plan;
+  renderPlan();
+
+  document.getElementById("btnPlan").disabled    = false;
+  document.getElementById("btnTracker").disabled = false;
+  showPage("plan");
+}
+
+/* Pick exercises for a session */
+function pickExercises(sessionMuscles, selected, level, goal, totalDays) {
+  const result = [];
+  const target = sessionMuscles.filter(m => selected.includes(m));
+
+  target.forEach(muscle => {
+    if (!DB[muscle]) return;
+    let pool = [...DB[muscle]];
+
+    // Sort by level preference: beginners → bodyweight first; advanced → machine compound first
+    if (level === "beginner") {
+      pool.sort((a,b) => (a.type === "bodyweight" ? -1 : b.type === "bodyweight" ? 1 : 0));
+    } else {
+      pool.sort((a,b) => (a.type === "machine" ? -1 : b.type === "machine" ? 1 : 0));
+    }
+
+    // How many exercises per muscle per session?
+    const muscleCnt = target.length;
+    let count = muscle === "abs" ? 3 : (muscleCnt <= 2 ? 3 : muscleCnt <= 4 ? 2 : 2);
+    count = Math.min(count, pool.length);
+
+    pool.slice(0, count).forEach(ex => {
+      const p = Object.assign({}, ex[level]);
+      // Apply goal modifications
+      if (goal === "fat_loss") {
+        p.rest = bumpdDown(p.rest);
+      } else if (goal === "strength") {
+        p.sets = Math.min(p.sets + 1, 6);
+        p.reps = bumpRepsDown(p.reps);
+      } else if (goal === "lean") {
+        p.reps = bumpRepsUp(p.reps);
+      }
+      result.push({...ex, muscle, params: p});
+    });
+  });
+
+  return result;
+}
+
+/* Helpers for goal-based rep/rest modification */
+function bumpdDown(rest) {
+  const map = {"120s":"90s","90s":"60s","75s":"50s","60s":"45s","45s":"30s","30s":"20s"};
+  return map[rest] || rest;
+}
+function bumpRepsDown(reps) {
+  // For strength: lower reps e.g. "8–12" → "5–8"
+  return reps.replace(/\d+/g, n => Math.max(3, parseInt(n) - 3));
+}
+function bumpRepsUp(reps) {
+  // For lean/fat loss: higher reps e.g. "8–12" → "12–15"
+  return reps.replace(/\d+/g, n => Math.min(40, parseInt(n) + 3));
+}
+
+/* ============================================================
+   RENDER PLAN
+============================================================ */
+function renderPlan() {
+  const p = userProfile;
+  const plan = currentPlan;
+
+  // Header
+  document.getElementById("planTitle").textContent =
+    `${LEVEL_NAMES[p.level]} ${GOAL_NAMES[p.goal]} Plan`;
+  document.getElementById("planSub").textContent =
+    `${p.days} training day${p.days>1?"s":""} per week  ·  Generated for ${p.weight}kg / ${p.height}cm`;
+
+  // Info cards: BMI, calories, protein
+  const calories = calcCalories(p);
+  const protein  = calcProtein(p);
+  document.getElementById("infoRow").innerHTML = `
+    <div class="icard">
+      <div class="icard-lbl">BMI</div>
+      <div class="icard-val" style="color:${p.bmiCol}">${p.bmi.toFixed(1)}</div>
+      <div class="icard-sub">${p.bmiCat}</div>
+    </div>
+    <div class="icard">
+      <div class="icard-lbl">Daily Calories (est.)</div>
+      <div class="icard-val" style="color:var(--yellow)">${calories}</div>
+      <div class="icard-sub">kcal/day target</div>
+    </div>
+    <div class="icard">
+      <div class="icard-lbl">Protein Target</div>
+      <div class="icard-val" style="color:var(--green)">${protein}g</div>
+      <div class="icard-sub">per day</div>
+    </div>
+    <div class="icard">
+      <div class="icard-lbl">Training Days</div>
+      <div class="icard-val" style="color:var(--accent)">${p.days}</div>
+      <div class="icard-sub">days/week</div>
+    </div>
+  `;
+
+  // Chips
+  const workoutDays   = plan.filter(d => !d.isRest);
+  const totalEx       = workoutDays.reduce((a,d) => a + d.exercises.length, 0);
+  const totalSets     = workoutDays.reduce((a,d) => a + d.exercises.reduce((b,e) => b + e.params.sets, 0), 0);
+  document.getElementById("chipsRow").innerHTML = `
+    <div class="chip">💪 <b>${workoutDays.length}</b> Training Days</div>
+    <div class="chip">🏋️ <b>${totalEx}</b> Exercises</div>
+    <div class="chip">🔄 <b>${totalSets}</b> Total Sets</div>
+    <div class="chip">🎯 <b>${LEVEL_NAMES[p.level]}</b></div>
+    <div class="chip">🥇 <b>${GOAL_NAMES[p.goal]}</b></div>
+  `;
+
+  // Progressive overload table
+  const schedule = getOverloadSchedule(p.level);
+  let rows = `<thead><tr>
+    <th>Week</th><th>Phase</th><th>Volume Adjustment</th><th>Intensity Target</th>
+  </tr></thead><tbody>`;
+  schedule.forEach(r => {
+    rows += `<tr>
+      <td style="color:var(--accent);font-weight:700">Wk ${r.wk}</td>
+      <td>${r.phase}</td>
+      <td style="color:var(--green)">${r.vol}</td>
+      <td>${r.int}</td>
+    </tr>`;
+  });
+  rows += "</tbody>";
+  document.getElementById("overloadTable").innerHTML = rows;
+
+  // Day cards
+  const wrap = document.getElementById("daysWrap");
+  wrap.innerHTML = "";
+  plan.forEach((day, i) => {
+    const card = document.createElement("div");
+    card.className = "dcard";
+    card.style.animationDelay = `${i * 0.06}s`;
+
+    if (day.isRest) {
+      card.innerHTML = `
+        <div class="dcard-head">
+          <div class="dcard-day">${day.day} — Day ${day.num}</div>
+          <div class="dbadge rest">Rest Day</div>
+        </div>
+        <div class="rest-box">
+          <span class="ri">😴</span>
+          <h4>Active Recovery Day</h4>
+          <p>Your muscles grow during rest. Aim for 7–9 hours of sleep, stay well-hydrated, and consider light walking, stretching, or foam rolling.</p>
+        </div>`;
+    } else {
+      const exHTML = day.exercises.map(ex => {
+        const typeTag = ex.type === "bodyweight"
+          ? `<span class="tag t-bw">🤸 Bodyweight</span>`
+          : `<span class="tag t-eq">🏋️ Equipment</span>`;
+        return `
+          <div class="ex">
+            <div class="ex-thumb">
+              <span style="font-size:2rem">${ex.emoji}</span>
+              <span class="mchip mc-${ex.muscle}">${ex.muscle}</span>
+            </div>
+            <div class="ex-body">
+              <div class="ex-name">${ex.name}</div>
+              <div class="ex-desc">${ex.desc}</div>
+              <div class="ex-tags">
+                <span class="tag t-s">🔄 ${ex.params.sets} Sets</span>
+                <span class="tag t-r">💥 ${ex.params.reps} Reps</span>
+                <span class="tag t-rest">⏱ ${ex.params.rest} Rest</span>
+                ${typeTag}
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+
+      card.innerHTML = `
+        <div class="dcard-head">
+          <div class="dcard-day">${day.day} — Day ${day.num}</div>
+          <div class="dbadge">${day.label}</div>
+        </div>
+        <div class="ex-grid">${exHTML}</div>`;
+    }
+    wrap.appendChild(card);
+  });
+
+  // Seed the tracker
+  renderTracker();
+}
+
+/* ============================================================
+   NUTRITION CALCULATORS
+============================================================ */
+function calcCalories(p) {
+  // Mifflin-St Jeor BMR
+  let bmr = p.gender === "male"
+    ? 10 * p.weight + 6.25 * p.height - 5 * p.age + 5
+    : 10 * p.weight + 6.25 * p.height - 5 * p.age - 161;
+  const act = p.days <= 2 ? 1.375 : p.days <= 4 ? 1.55 : 1.725;
+  const tdee = bmr * act;
+  if (p.goal === "fat_loss") return Math.round(tdee - 400);
+  if (p.goal === "muscle")   return Math.round(tdee + 300);
+  if (p.goal === "strength") return Math.round(tdee + 150);
+  return Math.round(tdee);
+}
+
+function calcProtein(p) {
+  const mult = (p.goal === "muscle" || p.goal === "strength") ? 2.2
+             : p.goal === "fat_loss" ? 2.0 : 1.8;
+  return Math.round(p.weight * mult);
+}
+
+/* ============================================================
+   PROGRESSIVE OVERLOAD SCHEDULE
+============================================================ */
+function getOverloadSchedule(level) {
+  const full = [
+    {wk:1, phase:"Foundation & Form",    vol:"Baseline sets/reps",         int:"60–65% of max"},
+    {wk:2, phase:"Volume Increase",      vol:"+1 rep per set",              int:"65–70% of max"},
+    {wk:3, phase:"Intensity Build",      vol:"+2.5 kg or +1 set",          int:"70–75% of max"},
+    {wk:4, phase:"Deload",               vol:"–20% volume",                 int:"50–60% of max"},
+    {wk:5, phase:"Strength Phase",       vol:"+5 kg or +2 reps",           int:"75–80% of max"},
+    {wk:6, phase:"Peak Volume",          vol:"Highest total weekly volume", int:"80–85% of max"},
+    {wk:7, phase:"Strength Test",        vol:"Test new 1–5 rep maxes",     int:"85–90% of max"},
+    {wk:8, phase:"Full Deload & Reset",  vol:"–30% volume",                 int:"50% of max"}
+  ];
+  if (level === "beginner") return full.slice(0,4);
+  if (level === "intermediate") return full.slice(0,6);
+  return full;
+}
+
+/* ============================================================
+   DOWNLOAD PLAN AS TEXT
+============================================================ */
+function downloadPlan() {
+  if (!currentPlan || !userProfile) return;
+  const p = userProfile;
+  let txt = `GYMFORGE WORKOUT PLAN\n${"=".repeat(50)}\n\n`;
+  txt += `Profile : ${p.weight} kg | ${p.height} cm | Age ${p.age} | ${p.gender}\n`;
+  txt += `Level   : ${LEVEL_NAMES[p.level]}\n`;
+  txt += `Goal    : ${GOAL_NAMES[p.goal]}\n`;
+  txt += `Days/wk : ${p.days}\n`;
+  txt += `BMI     : ${p.bmi.toFixed(1)} (${p.bmiCat})\n`;
+  txt += `Calories: ~${calcCalories(p)} kcal/day\n`;
+  txt += `Protein : ~${calcProtein(p)} g/day\n\n`;
+
+  currentPlan.forEach(day => {
+    txt += `${"─".repeat(50)}\n`;
+    txt += `${day.day.toUpperCase()} — ${day.label}\n`;
+    txt += `${"─".repeat(50)}\n`;
+    if (day.isRest) {
+      txt += `REST DAY — Sleep 7–9 hrs, stay hydrated, light stretch.\n\n`;
+    } else {
+      day.exercises.forEach((ex, i) => {
+        txt += `${i+1}. ${ex.name} [${ex.type}] — ${ex.muscle}\n`;
+        txt += `   Sets: ${ex.params.sets}  |  Reps: ${ex.params.reps}  |  Rest: ${ex.params.rest}\n`;
+        txt += `   Tip: ${ex.desc}\n\n`;
+      });
+    }
+  });
+
+  txt += `${"=".repeat(50)}\nPROGRESSIVE OVERLOAD\n${"=".repeat(50)}\n`;
+  getOverloadSchedule(p.level).forEach(r => {
+    txt += `Week ${r.wk}: ${r.phase} | ${r.vol} | ${r.int}\n`;
+  });
+
+  const blob = new Blob([txt], {type:"text/plain"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = "GymForge_Plan.txt"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   PROGRESS TRACKER
+============================================================ */
+function getWeekMonday(offset) {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff + offset * 7);
+  monday.setHours(0,0,0,0);
+  return monday;
+}
+
+function renderTracker() {
+  if (!currentPlan) return;
+  const plan = currentPlan;
+  const monday = getWeekMonday(currentWeek);
+
+  // Week label
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = d => d.toLocaleDateString("en-GB", {day:"numeric", month:"short"});
+  document.getElementById("weekLbl").textContent = `${fmt(monday)} – ${fmt(sunday)}`;
+
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  let workoutDays = 0, doneDays = 0;
+
+  plan.forEach((day, i) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    const key = date.toISOString().split("T")[0];
+    const isDone = !!trackerData[key];
+    const isRest = day.isRest;
+
+    if (!isRest) { workoutDays++; if (isDone) doneDays++; }
+
+    const el = document.createElement("div");
+    el.className = `cal-day${isDone ? " is-done" : ""}${isRest ? " is-rest" : ""}`;
+    el.innerHTML = `
+      <div class="cal-ab">${day.day.slice(0,3)}</div>
+      <div class="cal-sp">${day.label.split(" ")[0]}</div>
+      <div class="cal-ck">${isRest ? "😴" : isDone ? "✅" : "⬜"}</div>
+    `;
+    if (!isRest) el.onclick = () => toggleDay(key);
+    grid.appendChild(el);
+  });
+
+  // Stats
+  const pct = workoutDays ? Math.round(doneDays / workoutDays * 100) : 0;
+  document.getElementById("tWeekly").textContent = pct + "%";
+  document.getElementById("tTotal").textContent = Object.values(trackerData).filter(Boolean).length;
+  document.getElementById("tStreak").textContent = calcStreak();
+
+  renderWeightLog();
+}
+
+function toggleDay(key) {
+  trackerData[key] = !trackerData[key];
+  localStorage.setItem("gf_tracker", JSON.stringify(trackerData));
+  renderTracker();
+}
+
+function calcStreak() {
+  let streak = 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    if (trackerData[key]) streak++;
+    else if (i > 0) break;
+  }
+  return streak;
+}
+
+function shiftWeek(dir) {
+  currentWeek += dir;
+  renderTracker();
+}
+
+/* Weight log */
+function logWeight() {
+  const val = parseFloat(document.getElementById("wInput").value);
+  if (!val || val < 20 || val > 500) { alert("Enter a valid weight (20–500 kg)"); return; }
+  const today = new Date().toLocaleDateString("en-GB", {day:"numeric", month:"short", year:"numeric"});
+  weightLog.unshift({date: today, w: val});
+  if (weightLog.length > 15) weightLog.pop();
+  localStorage.setItem("gf_weights", JSON.stringify(weightLog));
+  document.getElementById("wInput").value = "";
+  renderWeightLog();
+}
+
+function renderWeightLog() {
+  const c = document.getElementById("wEntries");
+  if (!weightLog.length) {
+    c.innerHTML = `<p style="color:var(--muted);font-size:0.88rem">No entries yet — log your first weigh-in above.</p>`;
+    return;
+  }
+  c.innerHTML = weightLog.map((e, i) => {
+    const diff  = i < weightLog.length - 1 ? (e.w - weightLog[i+1].w).toFixed(1) : null;
+    const dcol  = diff === null ? "" : diff > 0 ? "var(--yellow)" : diff < 0 ? "var(--green)" : "var(--muted)";
+    const dtxt  = diff !== null ? `${diff > 0 ? "▲" : "▼"} ${Math.abs(diff)} kg` : "";
+    return `<div class="went">
+      <span class="w-date">${e.date}</span>
+      <span class="w-v">${e.w} kg</span>
+      <span class="w-d" style="color:${dcol}">${dtxt}</span>
+    </div>`;
+  }).join("");
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-pill").forEach(b => b.classList.remove("active"));
+  document.getElementById(id + "Page").classList.add("active");
+  const idx = {input:0, plan:1, tracker:2}[id];
+  document.querySelectorAll(".nav-pill")[idx].classList.add("active");
+  if (id === "tracker") renderTracker();
+  window.scrollTo(0,0);
+}
+
+/* Boot — restore any saved tracker state */
+renderWeightLog();
+</script>
+</body>
+</html>
