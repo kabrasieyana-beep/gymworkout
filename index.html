@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GymForge — Smart Workout Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070f;--surface:#0d0d1a;--card:#111120;--card2:#191930;
+  --accent:#d4ff00;--aDim:rgba(212,255,0,.10);--aBdr:rgba(212,255,0,.22);
+  --red:#ff3a3a;--rDim:rgba(255,58,58,.10);
+  --green:#00ffaa;--gDim:rgba(0,255,170,.10);
+  --yellow:#ffcc00;--blue:#5b8fff;--purple:#a855f7;
+  --text:#e6e6f0;--muted:#66667a;--border:rgba(255,255,255,.07);
+  --r:12px;--rs:8px;
+  --fd:'Bebas Neue',Impact,sans-serif;
+  --fb:'Barlow','Segoe UI',sans-serif;
+  --fc:'Barlow Condensed','Barlow',sans-serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 70% 40% at 50% -10%,rgba(212,255,0,.055) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 30% at 90% 90%,rgba(91,143,255,.03) 0%,transparent 50%);}
+
+nav{position:sticky;top:0;z-index:200;height:62px;padding:0 1.75rem;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(7,7,15,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);}
+.logo{font-family:var(--fd);font-size:1.9rem;letter-spacing:3px;color:var(--text);cursor:pointer;user-select:none;}
+.logo span{color:var(--accent);}
+.nav-pills{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:50px;padding:4px;}
+.nav-pill{background:none;border:none;color:var(--muted);font-family:var(--fb);font-weight:700;font-size:.82rem;
+  letter-spacing:.5px;padding:.38rem 1rem;border-radius:50px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.nav-pill:hover:not(:disabled){color:var(--text);}
+.nav-pill.active{background:var(--accent);color:#000;}
+.nav-pill:disabled{opacity:.3;cursor:not-allowed;}
+
+.page{display:none;position:relative;z-index:1;}
+.page.active{display:block;}
+
+/* HERO */
+.hero{text-align:center;padding:4rem 1.5rem 2.5rem;}
+.hero-eye{font-family:var(--fc);font-size:.78rem;letter-spacing:4px;text-transform:uppercase;color:var(--accent);margin-bottom:1rem;}
+.hero h1{font-family:var(--fd);letter-spacing:4px;line-height:.92;font-size:clamp(3.2rem,9vw,6.5rem);margin-bottom:1.5rem;}
+.hero h1 em{color:var(--accent);font-style:normal;}
+.hero p{color:var(--muted);font-size:1rem;max-width:480px;margin:0 auto;line-height:1.65;}
+
+.form-wrap{max-width:880px;margin:0 auto;padding:1.5rem 1.5rem 5rem;}
+.fsec{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.75rem;margin-bottom:1.25rem;position:relative;overflow:hidden;}
+.fsec::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent) 0%,transparent 70%);}
+.fsec-title{font-family:var(--fc);font-size:.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--accent);
+  display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;}
+.fsec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:1.25rem;}
+.field{display:flex;flex-direction:column;gap:.45rem;}
+.field label{font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+input[type="number"],select{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);
+  color:var(--text);font-family:var(--fb);font-size:.95rem;padding:.7rem 1rem;width:100%;
+  transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none;}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--aDim);}
+select option{background:var(--card);}
+
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:.75rem;}
+.mpill{position:relative;}
+.mpill input{position:absolute;opacity:0;width:0;height:0;}
+.mpill label{display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rs);padding:.75rem 1rem;cursor:pointer;transition:all .2s;user-select:none;font-size:.88rem;font-weight:500;}
+.mpill input:checked+label{border-color:var(--accent);background:var(--aDim);color:var(--accent);}
+.mpill label:hover{border-color:var(--aBdr);}
+
+.btn-cta{width:100%;background:var(--accent);color:#000;border:none;border-radius:var(--r);
+  padding:1.1rem 2rem;margin-top:.5rem;font-family:var(--fd);font-size:1.5rem;letter-spacing:3px;
+  cursor:pointer;transition:transform .15s,box-shadow .2s;}
+.btn-cta:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(212,255,0,.25);}
+.btn-cta:active{transform:translateY(0);}
+.btn-out{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:var(--rs);
+  padding:.6rem 1.15rem;font-family:var(--fb);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-out:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Variety notice banner */
+.variety-bar{display:flex;align-items:center;gap:.75rem;background:var(--aDim);border:1px solid var(--aBdr);
+  border-radius:var(--rs);padding:.85rem 1.25rem;margin-bottom:1.5rem;font-size:.85rem;}
+.variety-bar strong{color:var(--accent);}
+
+/* PLAN PAGE */
+.plan-wrap{max-width:1060px;margin:0 auto;padding:2rem 1.5rem 5rem;}
+.plan-head{margin-bottom:1.75rem;}
+.plan-head h2{font-family:var(--fd);font-size:clamp(2rem,5vw,3.5rem);letter-spacing:3px;line-height:1;margin-bottom:.4rem;}
+.plan-head p{color:var(--muted);font-size:.9rem;}
+
+.info-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.75rem;}
+.icard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;}
+.icard-lbl{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem;}
+.icard-val{font-family:var(--fd);font-size:2.6rem;letter-spacing:2px;line-height:1;margin-bottom:.2rem;}
+.icard-sub{font-size:.78rem;color:var(--muted);}
+
+.chips-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.75rem;}
+.chip{background:var(--card);border:1px solid var(--border);border-radius:50px;padding:.35rem .9rem;
+  font-size:.78rem;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:.35rem;}
+.chip b{color:var(--accent);}
+
+.action-bar{display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:1.75rem;}
+
+/* Goal legend */
+.goal-legend{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:.9rem 1.1rem;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--rs);}
+.gl-item{display:flex;align-items:center;gap:.35rem;font-size:.75rem;font-weight:600;}
+.gl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+.overload-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:2rem;overflow-x:auto;}
+.box-title{font-family:var(--fc);font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--yellow);margin-bottom:1.25rem;}
+table{width:100%;border-collapse:collapse;font-size:.87rem;}
+th{text-align:left;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:.5rem .75rem;border-bottom:1px solid var(--border);}
+td{padding:.7rem .75rem;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+.days-wrap{display:grid;gap:1.5rem;}
+.dcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;animation:slideUp .45s ease both;}
+@keyframes slideUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+.dcard-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+  padding:1.2rem 1.5rem;background:var(--card2);border-bottom:1px solid var(--border);}
+.dcard-day{font-family:var(--fd);font-size:1.5rem;letter-spacing:2px;}
+.dcard-right{display:flex;align-items:center;gap:.6rem;}
+.dbadge{font-family:var(--fc);font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  border-radius:50px;padding:.28rem .8rem;border:1px solid var(--aBdr);background:var(--aDim);color:var(--accent);}
+.dbadge.rest{background:rgba(255,255,255,.04);color:var(--muted);border-color:var(--border);}
+.btn-regen{background:none;border:1px solid var(--border);color:var(--muted);border-radius:50px;
+  padding:.25rem .75rem;font-size:.7rem;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;}
+.btn-regen:hover{border-color:var(--accent);color:var(--accent);}
+
+.ex-grid{padding:1.1rem 1.5rem;display:grid;gap:.75rem;}
+.ex{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;transition:border-color .2s;}
+.ex:hover{border-color:var(--aBdr);}
+.ex-thumb{width:90px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:.3rem;background:var(--card2);padding:.6rem;font-size:1.9rem;}
+.mchip{font-size:.56rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:.15rem .45rem;border-radius:3px;margin-top:.1rem;}
+.mc-chest{background:rgba(91,143,255,.15);color:#5b8fff;}
+.mc-back{background:rgba(0,255,170,.12);color:var(--green);}
+.mc-legs{background:rgba(168,85,247,.15);color:var(--purple);}
+.mc-shoulders{background:rgba(255,204,0,.12);color:var(--yellow);}
+.mc-arms{background:rgba(255,58,58,.12);color:var(--red);}
+.mc-abs{background:rgba(212,255,0,.10);color:var(--accent);}
+.mc-cardio{background:rgba(255,100,50,.15);color:#ff6432;}
+
+.ex-body{flex:1;padding:.85rem 1rem;}
+.ex-name{font-weight:700;font-size:.94rem;margin-bottom:.22rem;}
+.ex-desc{font-size:.77rem;color:var(--muted);line-height:1.45;margin-bottom:.6rem;}
+.ex-tags{display:flex;gap:.45rem;flex-wrap:wrap;}
+.tag{font-size:.7rem;font-weight:700;letter-spacing:.4px;padding:.18rem .5rem;border-radius:4px;border:1px solid transparent;}
+.t-s{background:var(--aDim);color:var(--accent);border-color:var(--aBdr);}
+.t-r{background:var(--aDim);color:var(--accent);border-color:var(--aBdr);}
+.t-rest{background:rgba(255,255,255,.05);color:var(--muted);}
+.t-bw{background:var(--gDim);color:var(--green);border-color:rgba(0,255,170,.25);}
+.t-eq{background:var(--rDim);color:#ff7070;border-color:rgba(255,58,58,.25);}
+.t-goal{font-size:.65rem;padding:.12rem .42rem;border-radius:3px;}
+.tg-fat_loss{background:rgba(255,100,50,.15);color:#ff6432;border-color:rgba(255,100,50,.3);}
+.tg-muscle{background:rgba(91,143,255,.15);color:var(--blue);border-color:rgba(91,143,255,.3);}
+.tg-lean{background:rgba(168,85,247,.15);color:var(--purple);border-color:rgba(168,85,247,.3);}
+.tg-strength{background:rgba(255,204,0,.12);color:var(--yellow);border-color:rgba(255,204,0,.3);}
+
+.rest-box{padding:2.5rem;text-align:center;color:var(--muted);}
+.rest-box .ri{font-size:3rem;margin-bottom:.75rem;display:block;}
+.rest-box h4{font-weight:700;color:var(--text);margin-bottom:.4rem;}
+.rest-box p{font-size:.84rem;line-height:1.55;max-width:380px;margin:0 auto;}
+
+/* TRACKER */
+.tracker-wrap{max-width:900px;margin:0 auto;padding:2rem 1.5rem 5rem;}
+.tracker-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;}
+.tracker-head h2{font-family:var(--fd);font-size:2.8rem;letter-spacing:3px;}
+.week-nav{display:flex;align-items:center;gap:.7rem;}
+.week-lbl{font-size:.82rem;font-weight:600;color:var(--muted);min-width:150px;text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.7rem;margin-bottom:2rem;}
+.cal-day{background:var(--card);border:1px solid var(--border);border-radius:var(--rs);
+  padding:1rem .4rem;text-align:center;cursor:pointer;transition:all .2s;user-select:none;}
+.cal-day:hover:not(.is-rest){border-color:var(--aBdr);}
+.cal-day.is-done{background:var(--gDim);border-color:rgba(0,255,170,.3);}
+.cal-day.is-rest{cursor:default;opacity:.45;}
+.cal-ab{font-size:.62rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem;}
+.cal-sp{font-size:.6rem;color:var(--muted);margin-bottom:.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-ck{font-size:1.35rem;}
+.tstat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1rem;margin-bottom:2rem;}
+.tstat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;text-align:center;}
+.tstat-v{font-family:var(--fd);font-size:3rem;letter-spacing:2px;line-height:1;margin-bottom:.25rem;}
+.tstat-l{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.wlog{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;}
+.wlog-title{font-family:var(--fc);font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.25rem;}
+.wrow{display:flex;gap:.75rem;margin-bottom:1.25rem;}
+.wrow input{flex:1;}
+.wentries{display:grid;gap:.5rem;}
+.went{display:flex;justify-content:space-between;align-items:center;padding:.6rem .85rem;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);font-size:.87rem;}
+.w-date{color:var(--muted);}
+.w-v{font-weight:700;}
+.w-d{font-size:.78rem;font-weight:700;}
+
+@media print{
+  nav,.action-bar,.week-nav,.btn-cta,.btn-out,.btn-regen,#trackerPage,#inputPage,.variety-bar{display:none!important;}
+  body{background:white!important;color:black!important;}
+  .dcard{break-inside:avoid;border:1px solid #ddd!important;background:white!important;}
+  .dcard-head{background:#f5f5f5!important;}
+  .ex{background:#fafafa!important;}
+  .ex-thumb{background:#eee!important;}
+}
+@media(max-width:640px){
+  nav{padding:0 1rem;}
+  .logo{font-size:1.5rem;}
+  .nav-pill{padding:.35rem .6rem;font-size:.75rem;}
+  .cal-grid{grid-template-columns:repeat(4,1fr);}
+  .ex-thumb{width:72px;font-size:1.5rem;}
+  .info-row{grid-template-columns:1fr 1fr;}
+}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--card2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="showPage('input')">GYM<span>FORGE</span></div>
+  <div class="nav-pills">
+    <button class="nav-pill active" onclick="showPage('input')">New Plan</button>
+    <button class="nav-pill" id="btnPlan" onclick="showPage('plan')" disabled>My Plan</button>
+    <button class="nav-pill" id="btnTracker" onclick="showPage('tracker')" disabled>Progress</button>
+  </div>
+</nav>
+
+<!-- INPUT PAGE -->
+<div id="inputPage" class="page active">
+  <div class="hero">
+    <div class="hero-eye">⚡ Dynamic Variety Workout Engine</div>
+    <h1>FORGE YOUR<br><em>IDEAL</em><br>BODY</h1>
+    <p>Every plan is unique. Your goal shapes <em>which</em> exercises you get. Shuffle anytime for a fresh workout — zero repetition, maximum results.</p>
+  </div>
+  <div class="form-wrap">
+    <div class="fsec">
+      <div class="fsec-title">📊 Body Stats</div>
+      <div class="fgrid">
+        <div class="field"><label>Weight (kg)</label><input type="number" id="weight" placeholder="75" min="30" max="300"></div>
+        <div class="field"><label>Height (cm)</label><input type="number" id="height" placeholder="175" min="100" max="250"></div>
+        <div class="field"><label>Age</label><input type="number" id="age" placeholder="25" min="13" max="100"></div>
+        <div class="field"><label>Gender</label>
+          <select id="gender">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other / Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">🎯 Training Preferences</div>
+      <div class="fgrid">
+        <div class="field"><label>Fitness Level</label>
+          <select id="level">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="field"><label>Primary Goal</label>
+          <select id="goal">
+            <option value="lean">Get Lean / Toned</option>
+            <option value="muscle">Build Muscle (Hypertrophy)</option>
+            <option value="fat_loss">Fat Loss / HIIT</option>
+            <option value="strength">Pure Strength</option>
+          </select>
+        </div>
+        <div class="field"><label>Days Per Week</label>
+          <select id="days">
+            <option value="1">1 day</option>
+            <option value="2">2 days</option>
+            <option value="3" selected>3 days</option>
+            <option value="4">4 days</option>
+            <option value="5">5 days</option>
+            <option value="6">6 days</option>
+            <option value="7">7 days</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">💪 Target Muscle Groups</div>
+      <div class="mgrid">
+        <div class="mpill"><input type="checkbox" id="m-chest" value="chest" checked><label for="m-chest"><span>🫁</span> Chest</label></div>
+        <div class="mpill"><input type="checkbox" id="m-back" value="back" checked><label for="m-back"><span>🔙</span> Back</label></div>
+        <div class="mpill"><input type="checkbox" id="m-legs" value="legs" checked><label for="m-legs"><span>🦵</span> Legs</label></div>
+        <div class="mpill"><input type="checkbox" id="m-shoulders" value="shoulders"><label for="m-shoulders"><span>🏋️</span> Shoulders</label></div>
+        <div class="mpill"><input type="checkbox" id="m-arms" value="arms"><label for="m-arms"><span>💪</span> Arms</label></div>
+        <div class="mpill"><input type="checkbox" id="m-abs" value="abs" checked><label for="m-abs"><span>🧱</span> Abs / Core</label></div>
+      </div>
+    </div>
+    <button class="btn-cta" onclick="generatePlan()">⚡ GENERATE MY UNIQUE PLAN</button>
+  </div>
+</div>
+
+<!-- PLAN PAGE -->
+<div id="planPage" class="page">
+  <div class="plan-wrap">
+    <div class="plan-head">
+      <h2 id="planTitle">Your Workout Plan</h2>
+      <p id="planSub"></p>
+    </div>
+    <div class="variety-bar">
+      <span style="font-size:1.2rem">🎲</span>
+      <div><strong>Dynamic Variety Active:</strong> Each day uses different exercises from your goal's pool. Hit <strong>↺ Shuffle Day</strong> on any day for a fresh workout. Exercises are goal-filtered — <strong>Fat Loss</strong> = HIIT/circuits, <strong>Muscle</strong> = heavy compounds, <strong>Strength</strong> = low-rep power moves, <strong>Lean</strong> = high-rep toning.</div>
+    </div>
+    <div class="info-row" id="infoRow"></div>
+    <div class="action-bar">
+      <button class="btn-out" onclick="window.print()">🖨️ Print / PDF</button>
+      <button class="btn-out" onclick="downloadPlan()">📥 Download Text</button>
+      <button class="btn-out" onclick="shuffleAll()">🎲 Reshuffle Whole Plan</button>
+      <button class="btn-out" onclick="showPage('input')">✏️ Edit</button>
+    </div>
+    <div class="chips-row" id="chipsRow"></div>
+    <div class="overload-box">
+      <div class="box-title">📈 Progressive Overload Schedule</div>
+      <table id="overloadTable"></table>
+    </div>
+    <div class="days-wrap" id="daysWrap"></div>
+  </div>
+</div>
+
+<!-- TRACKER PAGE -->
+<div id="trackerPage" class="page">
+  <div class="tracker-wrap">
+    <div class="tracker-head">
+      <h2>PROGRESS<br><span style="color:var(--accent)">TRACKER</span></h2>
+      <div class="week-nav">
+        <button class="btn-out" onclick="shiftWeek(-1)">← Prev</button>
+        <div class="week-lbl" id="weekLbl"></div>
+        <button class="btn-out" onclick="shiftWeek(1)">Next →</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="tstat-row">
+      <div class="tstat"><div class="tstat-v" id="tStreak" style="color:var(--red)">0</div><div class="tstat-l">🔥 Streak (days)</div></div>
+      <div class="tstat"><div class="tstat-v" id="tTotal" style="color:var(--accent)">0</div><div class="tstat-l">💪 Total Workouts</div></div>
+      <div class="tstat"><div class="tstat-v" id="tWeekly" style="color:var(--green)">0%</div><div class="tstat-l">📅 This Week Done</div></div>
+    </div>
+    <div class="wlog">
+      <div class="wlog-title">⚖️ Weight Log</div>
+      <div class="wrow"><input type="number" id="wInput" placeholder="Today's weight (kg)" step="0.1" min="20" max="500"><button class="btn-out" onclick="logWeight()">Log</button></div>
+      <div class="wentries" id="wEntries"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   EXERCISE DATABASE — 150+ exercises, each tagged with:
+   goals  : which goals this exercise is BEST for
+   levels : which fitness levels can do it
+   type   : 'bodyweight' | 'machine'
+   
+   Goal Profiles:
+   fat_loss  → Circuit-style, HIIT, full-body burners, cardio moves
+   lean      → High-rep isolation + moderate compound, toning
+   muscle    → Heavy compound + hypertrophy isolation
+   strength  → Low-rep heavy compound, powerlifting movements
+===================================================================== */
+const DB = {
+
+chest: [
+  // STRENGTH
+  {name:"Barbell Bench Press",emoji:"🏋️",type:"machine",muscle:"chest",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Lie flat, grip wider than shoulders. Lower bar to mid-chest with control. Drive powerfully. Keep feet flat, back slightly arched.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3 min"},muscle:{sets:4,reps:"6–10",rest:"90s"},lean:{sets:3,reps:"10–12",rest:"75s"},fat_loss:{sets:3,reps:"12–15",rest:"45s"}}},
+  {name:"Paused Bench Press",emoji:"⏸️",type:"machine",muscle:"chest",
+   goals:["strength"],levels:["intermediate","advanced"],
+   desc:"Bench press with a 2-second pause at the chest. Builds explosive strength off the bottom. Don't bounce the bar.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3 min"},muscle:{sets:4,reps:"5–7",rest:"2 min"},lean:{sets:3,reps:"8–10",rest:"90s"},fat_loss:{sets:3,reps:"8–10",rest:"60s"}}},
+  {name:"Board Press",emoji:"📋",type:"machine",muscle:"chest",
+   goals:["strength"],levels:["advanced"],
+   desc:"Press against a board on your chest to train lockout strength. Overloads the top range of the movement.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3 min"},muscle:{sets:4,reps:"5–8",rest:"2 min"},lean:{sets:3,reps:"8–10",rest:"90s"},fat_loss:{sets:3,reps:"10–12",rest:"60s"}}},
+
+  // MUSCLE
+  {name:"Incline Dumbbell Press",emoji:"📐",type:"machine",muscle:"chest",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Bench at 30–45°. Press dumbbells from shoulder level, squeeze upper chest at top. Don't let dumbbells drift too wide.",
+   params:{strength:{sets:4,reps:"6–8",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:3,reps:"15–20",rest:"40s"}}},
+  {name:"Dumbbell Chest Flyes",emoji:"🦅",type:"machine",muscle:"chest",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Lie flat. Open arms in a wide arc feeling a deep stretch. Squeeze chest to bring back. Slight bend in elbows throughout.",
+   params:{strength:{sets:3,reps:"8–10",rest:"90s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:3,reps:"20",rest:"30s"}}},
+  {name:"Cable Crossover",emoji:"✖️",type:"machine",muscle:"chest",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"High pulleys. Sweep handles down and together with a squeeze at the center. Best for inner chest definition.",
+   params:{strength:{sets:3,reps:"8–10",rest:"90s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Decline Dumbbell Press",emoji:"📉",type:"machine",muscle:"chest",
+   goals:["muscle"],levels:["intermediate","advanced"],
+   desc:"Decline bench 15–30°. Targets lower chest. Keep a slight arch, press to full lockout. Control the descent.",
+   params:{strength:{sets:4,reps:"6–8",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:3,reps:"15–20",rest:"40s"}}},
+  {name:"Landmine Press",emoji:"🚀",type:"machine",muscle:"chest",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Press a barbell anchored at the floor in an arc. Great for upper chest and shoulder health. Unique loading angle.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:3,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:3,reps:"15–20",rest:"30s"}}},
+
+  // LEAN / BODYWEIGHT
+  {name:"Push-Ups",emoji:"⬆️",type:"bodyweight",muscle:"chest",
+   goals:["lean","fat_loss","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Hands shoulder-width, body rigid. Lower chest to floor then press explosively. Tuck elbows 45° to body.",
+   params:{strength:{sets:4,reps:"15–20",rest:"60s"},muscle:{sets:4,reps:"15–25",rest:"45s"},lean:{sets:3,reps:"20–25",rest:"30s"},fat_loss:{sets:4,reps:"25–30",rest:"20s"}}},
+  {name:"Wide Push-Ups",emoji:"🤸",type:"bodyweight",muscle:"chest",
+   goals:["lean","fat_loss"],levels:["beginner","intermediate"],
+   desc:"Hands wider than shoulders. Targets outer chest. Great high-rep finisher. Keep core locked and hips level.",
+   params:{strength:{sets:3,reps:"15",rest:"60s"},muscle:{sets:4,reps:"20",rest:"45s"},lean:{sets:3,reps:"20–25",rest:"30s"},fat_loss:{sets:4,reps:"25–30",rest:"20s"}}},
+  {name:"Diamond Push-Ups",emoji:"💎",type:"bodyweight",muscle:"chest",
+   goals:["lean","fat_loss"],levels:["intermediate","advanced"],
+   desc:"Hands forming a diamond shape under chest. Intense on triceps and inner chest. Keep elbows close to body.",
+   params:{strength:{sets:3,reps:"10–15",rest:"60s"},muscle:{sets:4,reps:"15–20",rest:"45s"},lean:{sets:3,reps:"20",rest:"30s"},fat_loss:{sets:4,reps:"20–25",rest:"20s"}}},
+  {name:"Chest Dips",emoji:"🔽",type:"bodyweight",muscle:"chest",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Lean torso forward on parallel bars. Lower until upper arms parallel to floor. Press up through chest, not triceps.",
+   params:{strength:{sets:4,reps:"6–8",rest:"2 min"},muscle:{sets:4,reps:"10–15",rest:"75s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:3,reps:"20",rest:"30s"}}},
+
+  // FAT LOSS / HIIT
+  {name:"Push-Up to T-Rotation",emoji:"🔀",type:"bodyweight",muscle:"chest",
+   goals:["fat_loss","lean"],levels:["intermediate","advanced"],
+   desc:"Do a push-up, then rotate to side plank lifting one arm to sky. Alternating. Burns chest, core and cardio simultaneously.",
+   params:{strength:{sets:3,reps:"8/side",rest:"60s"},muscle:{sets:3,reps:"10/side",rest:"45s"},lean:{sets:4,reps:"12/side",rest:"30s"},fat_loss:{sets:4,reps:"15/side",rest:"20s"}}},
+  {name:"Clap Push-Ups",emoji:"👏",type:"bodyweight",muscle:"chest",
+   goals:["fat_loss","strength"],levels:["advanced"],
+   desc:"Explosive push-up where hands leave the floor. Builds power and burns major calories. Land softly with bent elbows.",
+   params:{strength:{sets:4,reps:"5–8",rest:"90s"},muscle:{sets:4,reps:"8–10",rest:"60s"},lean:{sets:3,reps:"10",rest:"45s"},fat_loss:{sets:5,reps:"8–12",rest:"30s"}}},
+  {name:"Chest Press Machine",emoji:"🖥️",type:"machine",muscle:"chest",
+   goals:["lean","fat_loss","muscle"],levels:["beginner","intermediate"],
+   desc:"Guided horizontal press. Great for beginners to feel the chest contracting. Full extension, slow lowering phase.",
+   params:{strength:{sets:3,reps:"8–10",rest:"90s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+],
+
+back: [
+  // STRENGTH
+  {name:"Deadlift",emoji:"⚡",type:"machine",muscle:"back",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Bar over mid-foot, hip-width stance. Hip-hinge to grip. Drive floor away, keep bar close, chest up. Lock hips at top.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3–4 min"},muscle:{sets:4,reps:"5–8",rest:"2 min"},lean:{sets:3,reps:"8–10",rest:"90s"},fat_loss:{sets:3,reps:"10",rest:"60s"}}},
+  {name:"Sumo Deadlift",emoji:"🏋️",type:"machine",muscle:"back",
+   goals:["strength"],levels:["intermediate","advanced"],
+   desc:"Wide stance, toes out, grip inside legs. Less lower back strain. Drive knees out and hips through to lockout.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3 min"},muscle:{sets:4,reps:"5–8",rest:"2 min"},lean:{sets:3,reps:"8–10",rest:"90s"},fat_loss:{sets:3,reps:"10",rest:"60s"}}},
+  {name:"Barbell Bent-Over Row",emoji:"🔄",type:"machine",muscle:"back",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Hip hinge, back 45°, bar below chest. Row to lower ribs, squeeze shoulder blades. No jerking or back rounding.",
+   params:{strength:{sets:5,reps:"4–6",rest:"2 min"},muscle:{sets:4,reps:"8–10",rest:"75s"},lean:{sets:3,reps:"12",rest:"60s"},fat_loss:{sets:3,reps:"15",rest:"45s"}}},
+  {name:"Pendlay Row",emoji:"📏",type:"machine",muscle:"back",
+   goals:["strength"],levels:["advanced"],
+   desc:"Bar starts on floor each rep. Explosive pull to lower chest. Trains hip hinge + upper back power simultaneously.",
+   params:{strength:{sets:5,reps:"3–5",rest:"2 min"},muscle:{sets:4,reps:"6–8",rest:"90s"},lean:{sets:3,reps:"10",rest:"60s"},fat_loss:{sets:3,reps:"12",rest:"45s"}}},
+
+  // MUSCLE / HYPERTROPHY
+  {name:"Pull-Ups",emoji:"🔝",type:"bodyweight",muscle:"back",
+   goals:["muscle","strength","lean"],levels:["intermediate","advanced"],
+   desc:"Overhand grip, arms straight. Pull chest to bar, squeezing lats. Lower fully. No kipping unless noted.",
+   params:{strength:{sets:5,reps:"5–8",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:4,reps:"max",rest:"45s"}}},
+  {name:"Chin-Ups",emoji:"⬆️",type:"bodyweight",muscle:"back",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Underhand grip. Biceps assist more than pull-ups. Great for building both back thickness and arm size together.",
+   params:{strength:{sets:4,reps:"5–8",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:4,reps:"max",rest:"45s"}}},
+  {name:"Lat Pulldown",emoji:"⬇️",type:"machine",muscle:"back",
+   goals:["muscle","lean","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Wide overhand grip, lean back slightly. Pull bar to upper chest, flare elbows down. Full lat stretch on the way up.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Seated Cable Row",emoji:"🚣",type:"machine",muscle:"back",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Neutral grip, sit tall. Pull handle to lower abs driving elbows behind you. Squeeze shoulder blades at end. No rounding.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"15",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Single-Arm DB Row",emoji:"💪",type:"machine",muscle:"back",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"One knee on bench. Row dumbbell from full hang to hip height keeping back parallel. Full range of motion.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Meadows Row",emoji:"🌿",type:"machine",muscle:"back",
+   goals:["muscle"],levels:["advanced"],
+   desc:"Landmine-style single arm row. Elbow flares away from body targeting upper back and rear delt. Heavy loading possible.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:3,reps:"15–20",rest:"30s"}}},
+  {name:"T-Bar Row",emoji:"🅃",type:"machine",muscle:"back",
+   goals:["muscle","strength"],levels:["intermediate","advanced"],
+   desc:"Straddle the barbell, neutral grip handles. Row to lower chest. Great for mid-back thickness. Keep chest on pad.",
+   params:{strength:{sets:5,reps:"4–6",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:3,reps:"15",rest:"45s"}}},
+
+  // FAT LOSS / BODYWEIGHT
+  {name:"Inverted Rows",emoji:"🔃",type:"bodyweight",muscle:"back",
+   goals:["fat_loss","lean","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Lie under bar, heels on floor. Pull chest to bar. Elevate feet for harder version. 100% bodyweight back builder.",
+   params:{strength:{sets:4,reps:"8–10",rest:"75s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Renegade Rows",emoji:"🏴",type:"machine",muscle:"back",
+   goals:["fat_loss","lean"],levels:["intermediate","advanced"],
+   desc:"Plank position holding dumbbells. Row one dumbbell to hip while stabilising on the other. Core + back combo.",
+   params:{strength:{sets:3,reps:"6/side",rest:"90s"},muscle:{sets:4,reps:"10/side",rest:"60s"},lean:{sets:3,reps:"12/side",rest:"45s"},fat_loss:{sets:4,reps:"15/side",rest:"30s"}}},
+  {name:"Superman Hold",emoji:"🦸",type:"bodyweight",muscle:"back",
+   goals:["fat_loss","lean"],levels:["beginner","intermediate"],
+   desc:"Face down, raise arms, chest and legs simultaneously. Hold 2 s at top. Lower slowly. Targets erector spinae.",
+   params:{strength:{sets:3,reps:"12",rest:"60s"},muscle:{sets:3,reps:"15",rest:"45s"},lean:{sets:4,reps:"20",rest:"30s"},fat_loss:{sets:4,reps:"25",rest:"20s"}}},
+  {name:"Good Mornings",emoji:"🌅",type:"machine",muscle:"back",
+   goals:["strength","lean"],levels:["intermediate","advanced"],
+   desc:"Bar on upper back, hip hinge forward keeping back flat. Feel hamstrings stretch then drive hips through. Spinal erectors.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:3,reps:"10–12",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:3,reps:"15",rest:"45s"}}},
+],
+
+legs: [
+  // STRENGTH
+  {name:"Barbell Back Squat",emoji:"🏋️",type:"machine",muscle:"legs",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Bar on upper traps, feet shoulder-width. Squat until thighs parallel. Drive heels into floor to stand. Keep chest up.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3–4 min"},muscle:{sets:4,reps:"8–10",rest:"90s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:4,reps:"15",rest:"45s"}}},
+  {name:"Front Squat",emoji:"🆙",type:"machine",muscle:"legs",
+   goals:["strength","muscle"],levels:["advanced"],
+   desc:"Bar in front rack position across front delts. More upright torso, hits quads harder than back squat. Core intensive.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3 min"},muscle:{sets:4,reps:"6–8",rest:"2 min"},lean:{sets:3,reps:"10–12",rest:"75s"},fat_loss:{sets:3,reps:"12",rest:"60s"}}},
+  {name:"Romanian Deadlift",emoji:"🔽",type:"machine",muscle:"legs",
+   goals:["strength","muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Hold bar at hips, push hips back with soft knees. Feel hamstring stretch fully, then drive hips forward. Flat back.",
+   params:{strength:{sets:4,reps:"5–7",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"90s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:3,reps:"15–20",rest:"45s"}}},
+  {name:"Bulgarian Split Squat",emoji:"🇧🇬",type:"machine",muscle:"legs",
+   goals:["strength","muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Rear foot elevated on bench. Front leg does all the work. Lower until front thigh is parallel. Brutal for quads and glutes.",
+   params:{strength:{sets:4,reps:"5/leg",rest:"2 min"},muscle:{sets:4,reps:"8–10/leg",rest:"75s"},lean:{sets:3,reps:"12–15/leg",rest:"60s"},fat_loss:{sets:3,reps:"15/leg",rest:"45s"}}},
+
+  // MUSCLE / HYPERTROPHY
+  {name:"Leg Press",emoji:"🦵",type:"machine",muscle:"legs",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Feet hip-width on platform. Lower sled until 90°, press back without locking out. Don't let lower back peel off pad.",
+   params:{strength:{sets:4,reps:"6–8",rest:"2 min"},muscle:{sets:4,reps:"10–15",rest:"75s"},lean:{sets:3,reps:"15–20",rest:"60s"},fat_loss:{sets:4,reps:"20",rest:"45s"}}},
+  {name:"Hack Squat",emoji:"🔓",type:"machine",muscle:"legs",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Machine squat with back supported at an angle. Emphasises quads heavily. Feet placement changes muscle focus.",
+   params:{strength:{sets:4,reps:"6–8",rest:"2 min"},muscle:{sets:4,reps:"10–12",rest:"75s"},lean:{sets:3,reps:"15",rest:"60s"},fat_loss:{sets:4,reps:"20",rest:"45s"}}},
+  {name:"Lying Leg Curl",emoji:"🔙",type:"machine",muscle:"legs",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Lie face down. Curl heels to glutes under control. Hold 1 s squeeze at top. Slow eccentric. Pure hamstring isolation.",
+   params:{strength:{sets:3,reps:"8–10",rest:"90s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Leg Extension",emoji:"🦵",type:"machine",muscle:"legs",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Seated, hook ankles under pad. Extend legs to lockout, squeezing quads. Slow 3-second lowering for maximum tension.",
+   params:{strength:{sets:3,reps:"8–10",rest:"90s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Standing Calf Raises",emoji:"👆",type:"bodyweight",muscle:"legs",
+   goals:["lean","muscle","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Stand on edge of step. Rise fully onto toes, hold 1 s. Lower below starting point for full stretch. Slow tempo.",
+   params:{strength:{sets:4,reps:"10–15",rest:"75s"},muscle:{sets:4,reps:"20–25",rest:"45s"},lean:{sets:3,reps:"25–30",rest:"30s"},fat_loss:{sets:4,reps:"30",rest:"20s"}}},
+  {name:"Seated Calf Raises",emoji:"🪑",type:"machine",muscle:"legs",
+   goals:["lean","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Seated with pad on thighs. Full range of motion. Targets soleus beneath the gastrocnemius. Slow controlled reps.",
+   params:{strength:{sets:4,reps:"10–12",rest:"75s"},muscle:{sets:4,reps:"15–20",rest:"45s"},lean:{sets:3,reps:"20–25",rest:"30s"},fat_loss:{sets:4,reps:"25",rest:"20s"}}},
+  {name:"Hip Thrust",emoji:"🍑",type:"machine",muscle:"legs",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Shoulders on bench, barbell over hips. Drive hips skyward squeezing glutes hard at top. Best glute builder.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+
+  // FAT LOSS / HIIT
+  {name:"Jump Squats",emoji:"🦘",type:"bodyweight",muscle:"legs",
+   goals:["fat_loss","lean"],levels:["intermediate","advanced"],
+   desc:"Squat down then explode upward. Land softly with bent knees. High calorie burner and leg power developer.",
+   params:{strength:{sets:4,reps:"8",rest:"90s"},muscle:{sets:4,reps:"10",rest:"60s"},lean:{sets:4,reps:"15",rest:"45s"},fat_loss:{sets:5,reps:"20",rest:"30s"}}},
+  {name:"Walking Lunges",emoji:"🚶",type:"bodyweight",muscle:"legs",
+   goals:["fat_loss","lean","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Step forward, lower back knee near floor. Push off front foot and step through. Keep torso upright throughout.",
+   params:{strength:{sets:3,reps:"8/leg",rest:"90s"},muscle:{sets:4,reps:"12/leg",rest:"60s"},lean:{sets:3,reps:"15/leg",rest:"45s"},fat_loss:{sets:4,reps:"20/leg",rest:"30s"}}},
+  {name:"Box Jumps",emoji:"📦",type:"bodyweight",muscle:"legs",
+   goals:["fat_loss","strength"],levels:["intermediate","advanced"],
+   desc:"Squat and explode onto a box landing softly in squat position. Step down, don't jump down. Full power movement.",
+   params:{strength:{sets:5,reps:"5",rest:"2 min"},muscle:{sets:4,reps:"8",rest:"90s"},lean:{sets:4,reps:"10",rest:"60s"},fat_loss:{sets:5,reps:"12",rest:"45s"}}},
+  {name:"Step-Ups",emoji:"⬆️",type:"bodyweight",muscle:"legs",
+   goals:["fat_loss","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Step onto a bench one leg at a time. Drive through the elevated heel to stand. Lower slowly. Great knee-friendly option.",
+   params:{strength:{sets:3,reps:"8/leg",rest:"75s"},muscle:{sets:4,reps:"12/leg",rest:"60s"},lean:{sets:3,reps:"15/leg",rest:"45s"},fat_loss:{sets:4,reps:"20/leg",rest:"30s"}}},
+  {name:"Burpee Squats",emoji:"🌀",type:"bodyweight",muscle:"legs",
+   goals:["fat_loss"],levels:["intermediate","advanced"],
+   desc:"Squat down, jump feet back to plank, jump feet forward, squat deep. Full body fat burner combining legs + cardio.",
+   params:{strength:{sets:3,reps:"8",rest:"90s"},muscle:{sets:3,reps:"10",rest:"60s"},lean:{sets:4,reps:"12",rest:"45s"},fat_loss:{sets:5,reps:"15",rest:"30s"}}},
+],
+
+shoulders: [
+  // STRENGTH
+  {name:"Overhead Press (Barbell)",emoji:"🆙",type:"machine",muscle:"shoulders",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Bar at chin height, grip slightly wider than shoulders. Press overhead to full lockout. Brace core. Control the descent.",
+   params:{strength:{sets:5,reps:"3–5",rest:"3 min"},muscle:{sets:4,reps:"6–8",rest:"90s"},lean:{sets:3,reps:"10–12",rest:"60s"},fat_loss:{sets:3,reps:"12–15",rest:"45s"}}},
+  {name:"Push Press",emoji:"📤",type:"machine",muscle:"shoulders",
+   goals:["strength","fat_loss"],levels:["intermediate","advanced"],
+   desc:"Use a slight leg drive to get the bar moving, then lock out overhead. Allows heavier loads than strict press.",
+   params:{strength:{sets:5,reps:"3–5",rest:"2 min"},muscle:{sets:4,reps:"6–8",rest:"90s"},lean:{sets:3,reps:"10",rest:"60s"},fat_loss:{sets:4,reps:"12",rest:"45s"}}},
+
+  // MUSCLE
+  {name:"Dumbbell Shoulder Press",emoji:"🎯",type:"machine",muscle:"shoulders",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Seated or standing. Press dumbbells overhead from shoulder height. Greater ROM than barbell. Control both directions.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:4,reps:"15–20",rest:"30s"}}},
+  {name:"Arnold Press",emoji:"🔄",type:"machine",muscle:"shoulders",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Start with dumbbells facing you at shoulder height. Rotate palms outward as you press up. Reverse on descent. Hits all 3 heads.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:3,reps:"15–20",rest:"30s"}}},
+  {name:"Lateral Raises (Dumbbell)",emoji:"🦅",type:"machine",muscle:"shoulders",
+   goals:["lean","muscle","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Hold dumbbells at sides, slight elbow bend. Raise to shoulder height feeling medial delt work. Lower slowly.",
+   params:{strength:{sets:3,reps:"8–10",rest:"75s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:4,reps:"15–20",rest:"30s"},fat_loss:{sets:5,reps:"20",rest:"20s"}}},
+  {name:"Cable Lateral Raises",emoji:"📡",type:"machine",muscle:"shoulders",
+   goals:["lean","muscle"],levels:["intermediate","advanced"],
+   desc:"Cable from low position to side. Constant tension throughout the movement. Superior to dumbbells for medial delts.",
+   params:{strength:{sets:3,reps:"10",rest:"60s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:4,reps:"15–20",rest:"30s"},fat_loss:{sets:5,reps:"20",rest:"20s"}}},
+  {name:"Face Pulls",emoji:"🎯",type:"machine",muscle:"shoulders",
+   goals:["lean","muscle","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Cable at forehead height with rope. Pull rope to face, elbows flaring up and out. Essential for rear delts & rotator cuff.",
+   params:{strength:{sets:3,reps:"12",rest:"60s"},muscle:{sets:4,reps:"15–20",rest:"45s"},lean:{sets:3,reps:"20",rest:"30s"},fat_loss:{sets:4,reps:"25",rest:"20s"}}},
+  {name:"Reverse Pec Deck",emoji:"🔄",type:"machine",muscle:"shoulders",
+   goals:["lean","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Face the machine. Handles at shoulder height. Reverse fly motion isolating rear delts. Control the return.",
+   params:{strength:{sets:3,reps:"10",rest:"60s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:3,reps:"15–20",rest:"30s"},fat_loss:{sets:4,reps:"20",rest:"20s"}}},
+  {name:"Front Raises",emoji:"☝️",type:"machine",muscle:"shoulders",
+   goals:["lean","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Raise dumbbells or a plate straight in front to shoulder height. Targets anterior deltoid. Avoid swinging.",
+   params:{strength:{sets:3,reps:"8–10",rest:"60s"},muscle:{sets:3,reps:"12–15",rest:"45s"},lean:{sets:3,reps:"15",rest:"30s"},fat_loss:{sets:4,reps:"20",rest:"20s"}}},
+  {name:"Upright Row",emoji:"⬆️",type:"machine",muscle:"shoulders",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Narrow grip on barbell. Row to chin height, elbows flaring wide. Hits medial delts and upper traps together.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:4,reps:"15–20",rest:"30s"}}},
+
+  // BODYWEIGHT / FAT LOSS
+  {name:"Pike Push-Ups",emoji:"🔺",type:"bodyweight",muscle:"shoulders",
+   goals:["lean","fat_loss","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Inverted V shape. Lower head between hands, press back up. More vertical = more shoulder load. Progress to HSPU.",
+   params:{strength:{sets:4,reps:"8–10",rest:"75s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Handstand Hold",emoji:"🤸",type:"bodyweight",muscle:"shoulders",
+   goals:["strength","lean"],levels:["advanced"],
+   desc:"Kick up to handstand against wall. Hold position building shoulder endurance and joint stability. Progress to press.",
+   params:{strength:{sets:4,reps:"20–30s",rest:"90s"},muscle:{sets:4,reps:"30–45s",rest:"60s"},lean:{sets:3,reps:"45s",rest:"45s"},fat_loss:{sets:4,reps:"30s",rest:"30s"}}},
+  {name:"Dumbbell Circles",emoji:"⭕",type:"machine",muscle:"shoulders",
+   goals:["fat_loss","lean"],levels:["beginner","intermediate"],
+   desc:"Arms extended at sides, make small circles forward then back. Brutal endurance for shoulder definition.",
+   params:{strength:{sets:3,reps:"20s",rest:"60s"},muscle:{sets:4,reps:"30s",rest:"45s"},lean:{sets:4,reps:"45s",rest:"30s"},fat_loss:{sets:5,reps:"45s",rest:"20s"}}},
+],
+
+arms: [
+  // STRENGTH / MUSCLE BICEPS
+  {name:"Barbell Curl",emoji:"💪",type:"machine",muscle:"arms",
+   goals:["muscle","strength"],levels:["beginner","intermediate","advanced"],
+   desc:"Elbows pinned to sides. Curl to shoulder height, squeeze hard. Lower fully. Zero torso swing allowed.",
+   params:{strength:{sets:5,reps:"4–6",rest:"2 min"},muscle:{sets:4,reps:"8–12",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Cheat Curls (Heavy)",emoji:"😤",type:"machine",muscle:"arms",
+   goals:["strength","muscle"],levels:["advanced"],
+   desc:"Use slight body English to curl a heavier weight. Controlled lowering negates any cheating benefit on the way up.",
+   params:{strength:{sets:4,reps:"4–6",rest:"2 min"},muscle:{sets:4,reps:"6–8",rest:"90s"},lean:{sets:3,reps:"10",rest:"60s"},fat_loss:{sets:3,reps:"12",rest:"45s"}}},
+  {name:"Incline Dumbbell Curl",emoji:"📐",type:"machine",muscle:"arms",
+   goals:["muscle","lean"],levels:["intermediate","advanced"],
+   desc:"Incline bench, arms hanging back. Full stretch at bottom. Targets the long head of bicep for peak development.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:4,reps:"15–20",rest:"30s"}}},
+  {name:"Hammer Curls",emoji:"🔨",type:"machine",muscle:"arms",
+   goals:["muscle","lean","strength"],levels:["beginner","intermediate","advanced"],
+   desc:"Neutral grip, palms facing in. Works brachialis giving arms thickness. Alternate or simultaneous.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"15",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Preacher Curl",emoji:"🙏",type:"machine",muscle:"arms",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Arm braced on preacher pad. Strict form, full extension at bottom. No cheating possible. Best bicep isolation.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:4,reps:"15–20",rest:"30s"}}},
+  {name:"Concentration Curl",emoji:"🎯",type:"machine",muscle:"arms",
+   goals:["lean","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Elbow on inner thigh. Curl fully, supinate at top. Maximum peak contraction. Mind-muscle connection focus.",
+   params:{strength:{sets:3,reps:"6–8",rest:"75s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:3,reps:"15–20",rest:"30s"},fat_loss:{sets:4,reps:"20",rest:"20s"}}},
+  {name:"Cable Bicep Curl",emoji:"📡",type:"machine",muscle:"arms",
+   goals:["lean","muscle","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Low cable pulley. Constant tension throughout entire range. Great for pump and definition. Slow eccentric.",
+   params:{strength:{sets:3,reps:"8–10",rest:"60s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:4,reps:"15–20",rest:"30s"},fat_loss:{sets:5,reps:"20",rest:"20s"}}},
+
+  // TRICEPS STRENGTH
+  {name:"Close-Grip Bench Press",emoji:"🤝",type:"machine",muscle:"arms",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Narrow grip on bench, elbows tucked. Press focuses load on triceps. Keep elbows close to torso throughout.",
+   params:{strength:{sets:5,reps:"3–5",rest:"2 min"},muscle:{sets:4,reps:"8–10",rest:"75s"},lean:{sets:3,reps:"12–15",rest:"60s"},fat_loss:{sets:3,reps:"15",rest:"45s"}}},
+  {name:"Skull Crushers",emoji:"💀",type:"machine",muscle:"arms",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"EZ bar above chest. Hinge only at elbows lowering to forehead. Keep upper arms vertical throughout.",
+   params:{strength:{sets:4,reps:"5–7",rest:"90s"},muscle:{sets:4,reps:"8–12",rest:"60s"},lean:{sets:3,reps:"12–15",rest:"45s"},fat_loss:{sets:3,reps:"15–20",rest:"30s"}}},
+  {name:"Overhead Tricep Extension",emoji:"🆙",type:"machine",muscle:"arms",
+   goals:["muscle","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Dumbbell or cable overhead. Hinge elbows lowering behind head. Full stretch of long head. Keep elbows tucked.",
+   params:{strength:{sets:4,reps:"6–8",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"60s"},lean:{sets:3,reps:"15",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Cable Pushdown (Rope)",emoji:"⬇️",type:"machine",muscle:"arms",
+   goals:["lean","muscle","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Rope attachment. Elbows at sides. Push down and flare rope out at bottom squeezing triceps hard. Constant tension.",
+   params:{strength:{sets:3,reps:"8–10",rest:"75s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:4,reps:"15–20",rest:"30s"},fat_loss:{sets:5,reps:"20",rest:"20s"}}},
+  {name:"Tricep Kickbacks",emoji:"🦵",type:"machine",muscle:"arms",
+   goals:["lean","fat_loss"],levels:["beginner","intermediate"],
+   desc:"Bent over, upper arm parallel to floor. Extend forearm back squeezing tricep hard at lockout. Isolation for definition.",
+   params:{strength:{sets:3,reps:"10",rest:"60s"},muscle:{sets:4,reps:"12–15",rest:"45s"},lean:{sets:4,reps:"15–20",rest:"30s"},fat_loss:{sets:5,reps:"20",rest:"20s"}}},
+  {name:"Tricep Dips",emoji:"🔽",type:"bodyweight",muscle:"arms",
+   goals:["muscle","lean","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Parallel bars, torso upright. Lower to 90°, lock out to top. Advanced: add weight belt. Beginners: bench dips.",
+   params:{strength:{sets:5,reps:"5–8",rest:"2 min"},muscle:{sets:4,reps:"10–15",rest:"75s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"max",rest:"30s"}}},
+  {name:"21s Curl",emoji:"🎲",type:"machine",muscle:"arms",
+   goals:["fat_loss","lean"],levels:["intermediate","advanced"],
+   desc:"7 reps lower half ROM, 7 reps upper half ROM, 7 full reps. Intense bicep pump. Destroys muscle fibres for growth.",
+   params:{strength:{sets:3,reps:"21",rest:"90s"},muscle:{sets:4,reps:"21",rest:"60s"},lean:{sets:3,reps:"21",rest:"45s"},fat_loss:{sets:4,reps:"21",rest:"30s"}}},
+],
+
+abs: [
+  // ALL GOALS - ABS IS UNIVERSAL BUT PARAMS CHANGE
+  {name:"Plank",emoji:"📏",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss","muscle","strength"],levels:["beginner","intermediate","advanced"],
+   desc:"Forearms on floor. Body rigid, head to heels. Breathe steadily. Don't let hips sag or pike. Squeeze glutes.",
+   params:{strength:{sets:4,reps:"45–60s",rest:"60s"},muscle:{sets:4,reps:"60–90s",rest:"45s"},lean:{sets:4,reps:"45–60s",rest:"30s"},fat_loss:{sets:5,reps:"60s",rest:"20s"}}},
+  {name:"Side Plank",emoji:"📐",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"On forearm and outer foot. Keep hips raised, body in line. Targets obliques and lateral core stability.",
+   params:{strength:{sets:3,reps:"30s/side",rest:"60s"},muscle:{sets:4,reps:"45s/side",rest:"45s"},lean:{sets:4,reps:"45s/side",rest:"30s"},fat_loss:{sets:4,reps:"60s/side",rest:"20s"}}},
+  {name:"Hollow Body Hold",emoji:"🥣",type:"bodyweight",muscle:"abs",
+   goals:["strength","lean"],levels:["intermediate","advanced"],
+   desc:"Lower back pressed into floor, arms overhead, legs raised. Whole core under sustained tension. Gymnastics staple.",
+   params:{strength:{sets:4,reps:"30–45s",rest:"75s"},muscle:{sets:4,reps:"45s",rest:"60s"},lean:{sets:3,reps:"45s",rest:"45s"},fat_loss:{sets:4,reps:"30s",rest:"30s"}}},
+  {name:"Crunches",emoji:"🔄",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss"],levels:["beginner","intermediate"],
+   desc:"Knees bent, feet flat. Curl shoulders off floor using abs only. No neck pulling. Control every single rep.",
+   params:{strength:{sets:4,reps:"20",rest:"60s"},muscle:{sets:4,reps:"25–30",rest:"45s"},lean:{sets:4,reps:"30",rest:"30s"},fat_loss:{sets:5,reps:"40",rest:"20s"}}},
+  {name:"Leg Raises",emoji:"⬆️",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Lie flat. Raise straight legs to 90°. Lower slowly without letting feet touch the floor. Targets lower abs.",
+   params:{strength:{sets:4,reps:"12–15",rest:"75s"},muscle:{sets:4,reps:"15–20",rest:"60s"},lean:{sets:4,reps:"20",rest:"45s"},fat_loss:{sets:5,reps:"25",rest:"30s"}}},
+  {name:"Russian Twists",emoji:"🔀",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss"],levels:["beginner","intermediate","advanced"],
+   desc:"Lean back 45°, feet raised. Rotate torso tapping floor each side. Add a weight for more intensity. Oblique destroyer.",
+   params:{strength:{sets:3,reps:"12/side",rest:"60s"},muscle:{sets:4,reps:"15/side",rest:"45s"},lean:{sets:4,reps:"20/side",rest:"30s"},fat_loss:{sets:5,reps:"25/side",rest:"20s"}}},
+  {name:"Bicycle Crunches",emoji:"🚴",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss","muscle"],levels:["beginner","intermediate","advanced"],
+   desc:"Bring opposite elbow to opposite knee extending the other leg fully. Rotate fully. Highest EMG activation of any ab exercise.",
+   params:{strength:{sets:4,reps:"15/side",rest:"60s"},muscle:{sets:4,reps:"20/side",rest:"45s"},lean:{sets:4,reps:"25/side",rest:"30s"},fat_loss:{sets:5,reps:"30/side",rest:"20s"}}},
+  {name:"Mountain Climbers",emoji:"⛰️",type:"bodyweight",muscle:"abs",
+   goals:["fat_loss","lean"],levels:["beginner","intermediate","advanced"],
+   desc:"Plank position. Drive alternating knees to chest as fast as possible. Keep hips level. Core + cardio in one movement.",
+   params:{strength:{sets:3,reps:"20s",rest:"60s"},muscle:{sets:4,reps:"30s",rest:"45s"},lean:{sets:4,reps:"45s",rest:"30s"},fat_loss:{sets:5,reps:"60s",rest:"20s"}}},
+  {name:"Ab Wheel Rollout",emoji:"⚙️",type:"machine",muscle:"abs",
+   goals:["strength","muscle"],levels:["intermediate","advanced"],
+   desc:"Kneel, roll wheel forward until fully extended, drag it back. Do not let hips drop. The ultimate core strength test.",
+   params:{strength:{sets:4,reps:"8–10",rest:"90s"},muscle:{sets:4,reps:"10–12",rest:"75s"},lean:{sets:3,reps:"12",rest:"60s"},fat_loss:{sets:4,reps:"15",rest:"45s"}}},
+  {name:"Cable Crunches",emoji:"📡",type:"machine",muscle:"abs",
+   goals:["muscle","strength"],levels:["intermediate","advanced"],
+   desc:"Kneel at cable, rope at forehead. Curl torso down contracting abs. Weighted ab exercise for adding thickness.",
+   params:{strength:{sets:4,reps:"10–12",rest:"75s"},muscle:{sets:4,reps:"12–15",rest:"60s"},lean:{sets:3,reps:"15–20",rest:"45s"},fat_loss:{sets:4,reps:"20",rest:"30s"}}},
+  {name:"Dragon Flag",emoji:"🐉",type:"bodyweight",muscle:"abs",
+   goals:["strength"],levels:["advanced"],
+   desc:"Grab bench behind head. Lift entire body to vertical supported only by upper back. Lower slowly. Bruce Lee's signature move.",
+   params:{strength:{sets:4,reps:"5–8",rest:"2 min"},muscle:{sets:4,reps:"6–10",rest:"90s"},lean:{sets:3,reps:"8–10",rest:"75s"},fat_loss:{sets:3,reps:"10",rest:"60s"}}},
+  {name:"Dead Bug",emoji:"🪲",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss"],levels:["beginner","intermediate"],
+   desc:"Back flat, arms up, knees at 90°. Lower opposite arm and leg toward floor without arching back. Perfect for beginners.",
+   params:{strength:{sets:3,reps:"10/side",rest:"60s"},muscle:{sets:4,reps:"12/side",rest:"45s"},lean:{sets:4,reps:"15/side",rest:"30s"},fat_loss:{sets:5,reps:"20/side",rest:"20s"}}},
+  {name:"Hanging Knee Raises",emoji:"🏋️",type:"bodyweight",muscle:"abs",
+   goals:["muscle","lean","fat_loss"],levels:["intermediate","advanced"],
+   desc:"Hang from bar. Bring knees to chest controlling the movement. No swinging. Progress to straight leg raises.",
+   params:{strength:{sets:4,reps:"12–15",rest:"75s"},muscle:{sets:4,reps:"15–20",rest:"60s"},lean:{sets:4,reps:"20",rest:"45s"},fat_loss:{sets:5,reps:"25",rest:"30s"}}},
+  {name:"Toe Touches",emoji:"👆",type:"bodyweight",muscle:"abs",
+   goals:["lean","fat_loss"],levels:["beginner","intermediate"],
+   desc:"Lie flat, legs vertical. Crunch up reaching for toes. Exhale fully at top. Great upper ab activation move.",
+   params:{strength:{sets:3,reps:"15",rest:"60s"},muscle:{sets:4,reps:"20",rest:"45s"},lean:{sets:4,reps:"25",rest:"30s"},fat_loss:{sets:5,reps:"30",rest:"20s"}}},
+  {name:"V-Ups",emoji:"✌️",type:"bodyweight",muscle:"abs",
+   goals:["lean","muscle","strength"],levels:["intermediate","advanced"],
+   desc:"Lie flat. Simultaneously raise legs and upper body meeting in the middle. Hands touch feet at top. Full core contraction.",
+   params:{strength:{sets:4,reps:"10–12",rest:"75s"},muscle:{sets:4,reps:"15",rest:"60s"},lean:{sets:4,reps:"20",rest:"45s"},fat_loss:{sets:5,reps:"20",rest:"30s"}}},
+]
+
+}; // end DB
+
+/* =====================================================================
+   WORKOUT SPLITS — goal-aware session definitions
+===================================================================== */
+const SPLITS = {
+  1:[{label:"Full Body",muscles:["chest","back","legs","shoulders","arms","abs"]}],
+  2:[{label:"Upper Body",muscles:["chest","back","shoulders","arms","abs"]},
+     {label:"Lower Body",muscles:["legs","abs"]}],
+  3:[{label:"Push (Chest·Shoulders·Triceps)",muscles:["chest","shoulders","arms"]},
+     {label:"Pull (Back·Biceps·Core)",muscles:["back","arms","abs"]},
+     {label:"Legs & Core",muscles:["legs","abs"]}],
+  4:[{label:"Chest & Triceps",muscles:["chest","arms"]},
+     {label:"Back & Biceps",muscles:["back","arms","abs"]},
+     {label:"Legs",muscles:["legs"]},
+     {label:"Shoulders & Core",muscles:["shoulders","abs"]}],
+  5:[{label:"Chest & Triceps",muscles:["chest","arms"]},
+     {label:"Back & Biceps",muscles:["back","arms"]},
+     {label:"Legs",muscles:["legs"]},
+     {label:"Shoulders & Core",muscles:["shoulders","abs"]},
+     {label:"Upper Power Day",muscles:["chest","back","shoulders"]}],
+  6:[{label:"Push A",muscles:["chest","shoulders","arms"]},
+     {label:"Pull A",muscles:["back","arms","abs"]},
+     {label:"Legs A",muscles:["legs","abs"]},
+     {label:"Push B",muscles:["chest","shoulders"]},
+     {label:"Pull B",muscles:["back","abs"]},
+     {label:"Legs B",muscles:["legs"]}],
+  7:[{label:"Push",muscles:["chest","shoulders","arms"]},
+     {label:"Pull",muscles:["back","arms"]},
+     {label:"Legs",muscles:["legs","abs"]},
+     {label:"Upper",muscles:["chest","back","shoulders"]},
+     {label:"Lower + Core",muscles:["legs","abs"]},
+     {label:"Arms & Delts",muscles:["arms","shoulders"]},
+     {label:"Core & Mobility",muscles:["abs"]}]
+};
+
+const DAYS_OF_WEEK=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const GOAL_NAMES={lean:"Get Lean / Toned",muscle:"Build Muscle",fat_loss:"Fat Loss / HIIT",strength:"Pure Strength"};
+const GOAL_COLORS={lean:"var(--purple)",muscle:"var(--blue)",fat_loss:"#ff6432",strength:"var(--yellow)"};
+const LEVEL_NAMES={beginner:"Beginner",intermediate:"Intermediate",advanced:"Advanced"};
+
+/* =====================================================================
+   STATE
+===================================================================== */
+let currentPlan=null, userProfile=null, currentWeek=0;
+let trackerData=JSON.parse(localStorage.getItem("gf_tracker")||"{}");
+let weightLog=JSON.parse(localStorage.getItem("gf_weights")||"[]");
+// Track which exercises were already used across days (for daily variety)
+let usedExercises={};
+
+/* =====================================================================
+   SHUFFLE HELPER — Fischer-Yates
+===================================================================== */
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/* =====================================================================
+   PICK EXERCISES — goal-first, variety-guaranteed
+   - Filter by goal (primary) then level
+   - Shuffle pool before picking
+   - Track used exercises per muscle to avoid repeats across days
+===================================================================== */
+function pickExercises(sessionMuscles, selectedMuscles, level, goal, dayIndex){
+  const result=[];
+  const target=sessionMuscles.filter(m=>selectedMuscles.includes(m));
+
+  target.forEach(muscle=>{
+    if(!DB[muscle]) return;
+
+    // 1. Filter by goal (prefer exercises tagged for this goal)
+    let goalPool=DB[muscle].filter(ex=>ex.goals.includes(goal)&&ex.levels.includes(level));
+    // 2. Fallback: same goal any level
+    if(goalPool.length<2) goalPool=DB[muscle].filter(ex=>ex.goals.includes(goal));
+    // 3. Fallback: any exercise for this level
+    if(goalPool.length<2) goalPool=DB[muscle].filter(ex=>ex.levels.includes(level));
+    // 4. Full fallback
+    if(goalPool.length<2) goalPool=[...DB[muscle]];
+
+    // Shuffle for variety
+    let pool=shuffle(goalPool);
+
+    // Remove exercises already used for this muscle on OTHER days (variety across days)
+    const usedKey=`${muscle}`;
+    if(!usedExercises[usedKey]) usedExercises[usedKey]=[];
+    const fresh=pool.filter(e=>!usedExercises[usedKey].includes(e.name));
+    const fallback=pool.filter(e=>usedExercises[usedKey].includes(e.name));
+    pool=[...fresh,...fallback]; // fresh first, used ones at end as fallback
+
+    // How many per muscle?
+    const muscleCnt=target.length;
+    let count=muscle==="abs"?3:(muscleCnt<=2?3:muscleCnt<=4?2:2);
+    count=Math.min(count,pool.length);
+
+    const picked=pool.slice(0,count);
+    picked.forEach(ex=>{
+      // Mark as used
+      usedExercises[usedKey].push(ex.name);
+      // Get params for this goal
+      const p={...ex.params[goal]};
+      result.push({...ex,params:p});
+    });
+  });
+
+  return result;
+}
+
+/* =====================================================================
+   GENERATE PLAN
+===================================================================== */
+function generatePlan(){
+  const weight=parseFloat(document.getElementById("weight").value)||75;
+  const height=parseFloat(document.getElementById("height").value)||175;
+  const age=parseInt(document.getElementById("age").value)||25;
+  const gender=document.getElementById("gender").value;
+  const level=document.getElementById("level").value;
+  const goal=document.getElementById("goal").value;
+  const days=parseInt(document.getElementById("days").value);
+  const selected=[...document.querySelectorAll('.mpill input:checked')].map(c=>c.value);
+  if(!selected.length){alert("Please select at least one muscle group!");return;}
+
+  const bmi=weight/Math.pow(height/100,2);
+  const bmiCat=bmi<18.5?"Underweight":bmi<25?"Normal Weight":bmi<30?"Overweight":"Obese";
+  const bmiCol=bmi<18.5?"var(--blue)":bmi<25?"var(--green)":bmi<30?"var(--yellow)":"var(--red)";
+  userProfile={weight,height,age,gender,level,goal,days,selected,bmi,bmiCat,bmiCol};
+
+  buildPlan();
+  document.getElementById("btnPlan").disabled=false;
+  document.getElementById("btnTracker").disabled=false;
+  showPage("plan");
+}
+
+function buildPlan(){
+  const {level,goal,days,selected}=userProfile;
+  const split=SPLITS[days];
+  usedExercises={}; // reset variety tracker for new plan
+  const plan=[];
+
+  for(let i=0;i<7;i++){
+    if(i<days){
+      const session=split[i];
+      const exercises=pickExercises(session.muscles,selected,level,goal,i);
+      plan.push({day:DAYS_OF_WEEK[i],num:i+1,label:session.label,isRest:false,exercises,sessionMuscles:session.muscles});
+    } else {
+      plan.push({day:DAYS_OF_WEEK[i],num:i+1,label:"Rest Day",isRest:true,exercises:[],sessionMuscles:[]});
+    }
+  }
+  currentPlan=plan;
+  renderPlan();
+}
+
+/* Reshuffle entire plan keeping same split structure */
+function shuffleAll(){
+  if(!currentPlan||!userProfile) return;
+  buildPlan();
+}
+
+/* Reshuffle single day */
+function reshuffleDay(dayIndex){
+  if(!currentPlan||!userProfile) return;
+  const day=currentPlan[dayIndex];
+  if(day.isRest) return;
+  const {level,goal,selected}=userProfile;
+  // Reset used for this day's muscles to get fresh picks
+  day.sessionMuscles.forEach(m=>{
+    if(usedExercises[m]){
+      // Remove the exercises from today from the used list
+      const todayNames=day.exercises.map(e=>e.name);
+      usedExercises[m]=usedExercises[m].filter(n=>!todayNames.includes(n));
+    }
+  });
+  day.exercises=pickExercises(day.sessionMuscles,selected,level,goal,dayIndex);
+  renderDayCard(dayIndex);
+  renderChips();
+}
+
+/* =====================================================================
+   RENDER PLAN
+===================================================================== */
+function renderPlan(){
+  const p=userProfile;
+  document.getElementById("planTitle").textContent=`${LEVEL_NAMES[p.level]} · ${GOAL_NAMES[p.goal]}`;
+  document.getElementById("planSub").textContent=`${p.days} training day${p.days>1?"s":""}/week · ${p.weight}kg, ${p.height}cm · Every day uses a unique, goal-specific exercise selection`;
+
+  const calories=calcCalories(p), protein=calcProtein(p);
+  document.getElementById("infoRow").innerHTML=`
+    <div class="icard">
+      <div class="icard-lbl">BMI</div>
+      <div class="icard-val" style="color:${p.bmiCol}">${p.bmi.toFixed(1)}</div>
+      <div class="icard-sub">${p.bmiCat}</div>
+    </div>
+    <div class="icard">
+      <div class="icard-lbl">Daily Calories</div>
+      <div class="icard-val" style="color:var(--yellow)">${calories}</div>
+      <div class="icard-sub">kcal/day target</div>
+    </div>
+    <div class="icard">
+      <div class="icard-lbl">Protein Target</div>
+      <div class="icard-val" style="color:var(--green)">${protein}g</div>
+      <div class="icard-sub">per day</div>
+    </div>
+    <div class="icard">
+      <div class="icard-lbl">Goal</div>
+      <div class="icard-val" style="color:${GOAL_COLORS[p.goal]};font-size:1.6rem;letter-spacing:1px">${GOAL_NAMES[p.goal].split("/")[0].trim()}</div>
+      <div class="icard-sub">Primary training style</div>
+    </div>`;
+
+  renderChips();
+
+  // Progressive overload
+  const schedule=getOverloadSchedule(p.level);
+  let rows=`<thead><tr><th>Week</th><th>Phase</th><th>Volume</th><th>Intensity</th></tr></thead><tbody>`;
+  schedule.forEach(r=>{
+    rows+=`<tr>
+      <td style="color:var(--accent);font-weight:700">Wk ${r.wk}</td>
+      <td>${r.phase}</td>
+      <td style="color:var(--green)">${r.vol}</td>
+      <td>${r.int}</td>
+    </tr>`;
+  });
+  document.getElementById("overloadTable").innerHTML=rows+"</tbody>";
+
+  // Render all day cards
+  const wrap=document.getElementById("daysWrap");
+  wrap.innerHTML="";
+  currentPlan.forEach((_,i)=>{
+    const el=document.createElement("div");
+    el.id=`daycard-${i}`;
+    el.style.animationDelay=`${i*0.06}s`;
+    wrap.appendChild(el);
+    renderDayCard(i);
+  });
+
+  renderTracker();
+}
+
+function renderChips(){
+  const p=userProfile;
+  const workoutDays=currentPlan.filter(d=>!d.isRest);
+  const totalEx=workoutDays.reduce((a,d)=>a+d.exercises.length,0);
+  const totalSets=workoutDays.reduce((a,d)=>a+d.exercises.reduce((b,e)=>b+e.params.sets,0),0);
+  const bwCount=workoutDays.reduce((a,d)=>a+d.exercises.filter(e=>e.type==="bodyweight").length,0);
+  document.getElementById("chipsRow").innerHTML=`
+    <div class="chip">💪 <b>${workoutDays.length}</b> Training Days</div>
+    <div class="chip">🏋️ <b>${totalEx}</b> Exercises</div>
+    <div class="chip">🔄 <b>${totalSets}</b> Total Sets</div>
+    <div class="chip">🤸 <b>${bwCount}</b> Bodyweight</div>
+    <div class="chip">🎯 <b>${LEVEL_NAMES[p.level]}</b></div>`;
+}
+
+function renderDayCard(i){
+  const day=currentPlan[i];
+  const container=document.getElementById(`daycard-${i}`);
+  if(!container) return;
+
+  if(day.isRest){
+    container.className="dcard";
+    container.innerHTML=`
+      <div class="dcard-head">
+        <div class="dcard-day">${day.day} — Day ${day.num}</div>
+        <div class="dbadge rest">Rest Day</div>
+      </div>
+      <div class="rest-box">
+        <span class="ri">😴</span>
+        <h4>Active Recovery Day</h4>
+        <p>Muscles grow during rest. Sleep 7–9 hours, stay hydrated, consider light stretching or a gentle walk.</p>
+      </div>`;
+    return;
+  }
+
+  const exHTML=day.exercises.map(ex=>{
+    const typeTag=ex.type==="bodyweight"
+      ?`<span class="tag t-bw">🤸 Bodyweight</span>`
+      :`<span class="tag t-eq">🏋️ Equipment</span>`;
+    const goalCol=GOAL_COLORS[userProfile.goal];
+    return `
+      <div class="ex">
+        <div class="ex-thumb">
+          <span>${ex.emoji}</span>
+          <span class="mchip mc-${ex.muscle}">${ex.muscle}</span>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">${ex.name}</div>
+          <div class="ex-desc">${ex.desc}</div>
+          <div class="ex-tags">
+            <span class="tag t-s">🔄 ${ex.params.sets} Sets</span>
+            <span class="tag t-r">💥 ${ex.params.reps} Reps</span>
+            <span class="tag t-rest">⏱ ${ex.params.rest} Rest</span>
+            ${typeTag}
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  container.className="dcard";
+  container.innerHTML=`
+    <div class="dcard-head">
+      <div class="dcard-day">${day.day} — Day ${day.num}</div>
+      <div class="dcard-right">
+        <div class="dbadge">${day.label}</div>
+        <button class="btn-regen" onclick="reshuffleDay(${i})">↺ Shuffle Day</button>
+      </div>
+    </div>
+    <div class="ex-grid">${exHTML}</div>`;
+}
+
+/* =====================================================================
+   NUTRITION CALCULATORS
+===================================================================== */
+function calcCalories(p){
+  let bmr=p.gender==="male"?10*p.weight+6.25*p.height-5*p.age+5:10*p.weight+6.25*p.height-5*p.age-161;
+  const act=p.days<=2?1.375:p.days<=4?1.55:1.725;
+  const tdee=bmr*act;
+  if(p.goal==="fat_loss") return Math.round(tdee-400);
+  if(p.goal==="muscle")   return Math.round(tdee+300);
+  if(p.goal==="strength") return Math.round(tdee+150);
+  return Math.round(tdee);
+}
+function calcProtein(p){
+  const mult=(p.goal==="muscle"||p.goal==="strength")?2.2:p.goal==="fat_loss"?2.0:1.8;
+  return Math.round(p.weight*mult);
+}
+
+/* =====================================================================
+   PROGRESSIVE OVERLOAD SCHEDULE
+===================================================================== */
+function getOverloadSchedule(level){
+  const full=[
+    {wk:1,phase:"Foundation & Form",    vol:"Baseline sets/reps",           int:"60–65% of 1RM"},
+    {wk:2,phase:"Volume Increase",      vol:"+1 rep per set",               int:"65–70% of 1RM"},
+    {wk:3,phase:"Intensity Build",      vol:"+2.5 kg or +1 set",            int:"70–75% of 1RM"},
+    {wk:4,phase:"Deload Week",          vol:"–20% total volume",            int:"50–60% of 1RM"},
+    {wk:5,phase:"Strength Phase",       vol:"+5 kg or +2 reps vs Week 1",  int:"75–80% of 1RM"},
+    {wk:6,phase:"Peak Volume",          vol:"Highest weekly volume",        int:"80–85% of 1RM"},
+    {wk:7,phase:"Strength Test",        vol:"Test 1–5 rep maxes",          int:"85–90% of 1RM"},
+    {wk:8,phase:"Full Deload & Reset",  vol:"–30% volume",                  int:"50% of 1RM"}
+  ];
+  if(level==="beginner")     return full.slice(0,4);
+  if(level==="intermediate") return full.slice(0,6);
+  return full;
+}
+
+/* =====================================================================
+   DOWNLOAD AS TEXT
+===================================================================== */
+function downloadPlan(){
+  if(!currentPlan||!userProfile) return;
+  const p=userProfile;
+  let txt=`GYMFORGE WORKOUT PLAN\n${"=".repeat(55)}\n\n`;
+  txt+=`Profile : ${p.weight} kg | ${p.height} cm | Age ${p.age} | ${p.gender}\n`;
+  txt+=`Level   : ${LEVEL_NAMES[p.level]}\n`;
+  txt+=`Goal    : ${GOAL_NAMES[p.goal]}\n`;
+  txt+=`Days/wk : ${p.days}\n`;
+  txt+=`BMI     : ${p.bmi.toFixed(1)} (${p.bmiCat})\n`;
+  txt+=`Calories: ~${calcCalories(p)} kcal/day\n`;
+  txt+=`Protein : ~${calcProtein(p)} g/day\n\n`;
+  currentPlan.forEach(day=>{
+    txt+=`${"─".repeat(55)}\n${day.day.toUpperCase()} — ${day.label}\n${"─".repeat(55)}\n`;
+    if(day.isRest){txt+=`REST DAY — Sleep well, stay hydrated.\n\n`;}
+    else{day.exercises.forEach((ex,i)=>{
+      txt+=`${i+1}. ${ex.name} [${ex.type}] — ${ex.muscle.toUpperCase()}\n`;
+      txt+=`   Sets: ${ex.params.sets}  |  Reps: ${ex.params.reps}  |  Rest: ${ex.params.rest}\n`;
+      txt+=`   Tip: ${ex.desc}\n\n`;
+    });}
+  });
+  txt+=`${"=".repeat(55)}\nPROGRESSIVE OVERLOAD\n${"=".repeat(55)}\n`;
+  getOverloadSchedule(p.level).forEach(r=>{txt+=`Week ${r.wk}: ${r.phase} | ${r.vol} | ${r.int}\n`;});
+  const blob=new Blob([txt],{type:"text/plain"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="GymForge_Plan.txt";a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* =====================================================================
+   PROGRESS TRACKER
+===================================================================== */
+function getWeekMonday(offset){
+  const now=new Date();
+  const day=now.getDay();
+  const diff=(day===0?-6:1-day);
+  const monday=new Date(now);
+  monday.setDate(now.getDate()+diff+offset*7);
+  monday.setHours(0,0,0,0);
+  return monday;
+}
+
+function renderTracker(){
+  if(!currentPlan) return;
+  const plan=currentPlan;
+  const monday=getWeekMonday(currentWeek);
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
+  const fmt=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  document.getElementById("weekLbl").textContent=`${fmt(monday)} – ${fmt(sunday)}`;
+  const grid=document.getElementById("calGrid");
+  grid.innerHTML="";
+  let workoutDays=0,doneDays=0;
+  plan.forEach((day,i)=>{
+    const date=new Date(monday);date.setDate(monday.getDate()+i);
+    const key=date.toISOString().split("T")[0];
+    const isDone=!!trackerData[key],isRest=day.isRest;
+    if(!isRest){workoutDays++;if(isDone)doneDays++;}
+    const el=document.createElement("div");
+    el.className=`cal-day${isDone?" is-done":""}${isRest?" is-rest":""}`;
+    el.innerHTML=`<div class="cal-ab">${day.day.slice(0,3)}</div><div class="cal-sp">${day.label.split(" ")[0]}</div><div class="cal-ck">${isRest?"😴":isDone?"✅":"⬜"}</div>`;
+    if(!isRest) el.onclick=()=>toggleDay(key);
+    grid.appendChild(el);
+  });
+  const pct=workoutDays?Math.round(doneDays/workoutDays*100):0;
+  document.getElementById("tWeekly").textContent=pct+"%";
+  document.getElementById("tTotal").textContent=Object.values(trackerData).filter(Boolean).length;
+  document.getElementById("tStreak").textContent=calcStreak();
+  renderWeightLog();
+}
+function toggleDay(key){
+  trackerData[key]=!trackerData[key];
+  localStorage.setItem("gf_tracker",JSON.stringify(trackerData));
+  renderTracker();
+}
+function calcStreak(){
+  let streak=0;
+  const today=new Date();today.setHours(0,0,0,0);
+  for(let i=0;i<60;i++){
+    const d=new Date(today);d.setDate(today.getDate()-i);
+    const key=d.toISOString().split("T")[0];
+    if(trackerData[key])streak++;
+    else if(i>0)break;
+  }
+  return streak;
+}
+function shiftWeek(dir){currentWeek+=dir;renderTracker();}
+function logWeight(){
+  const val=parseFloat(document.getElementById("wInput").value);
+  if(!val||val<20||val>500){alert("Enter a valid weight");return;}
+  const today=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  weightLog.unshift({date:today,w:val});
+  if(weightLog.length>15) weightLog.pop();
+  localStorage.setItem("gf_weights",JSON.stringify(weightLog));
+  document.getElementById("wInput").value="";
+  renderWeightLog();
+}
+function renderWeightLog(){
+  const c=document.getElementById("wEntries");
+  if(!weightLog.length){c.innerHTML=`<p style="color:var(--muted);font-size:.88rem">No entries yet — log your first weigh-in above.</p>`;return;}
+  c.innerHTML=weightLog.map((e,i)=>{
+    const diff=i<weightLog.length-1?(e.w-weightLog[i+1].w).toFixed(1):null;
+    const dcol=diff===null?"":(diff>0?"var(--yellow)":(diff<0?"var(--green)":"var(--muted)"));
+    const dtxt=diff!==null?`${diff>0?"▲":"▼"} ${Math.abs(diff)} kg`:"";
+    return `<div class="went"><span class="w-date">${e.date}</span><span class="w-v">${e.w} kg</span><span class="w-d" style="color:${dcol}">${dtxt}</span></div>`;
+  }).join("");
+}
+
+/* =====================================================================
+   NAVIGATION
+===================================================================== */
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-pill").forEach(b=>b.classList.remove("active"));
+  document.getElementById(id+"Page").classList.add("active");
+  document.querySelectorAll(".nav-pill")[{input:0,plan:1,tracker:2}[id]].classList.add("active");
+  if(id==="tracker") renderTracker();
+  window.scrollTo(0,0);
+}
+
+renderWeightLog();
+</script>
+</body>
+</html>
